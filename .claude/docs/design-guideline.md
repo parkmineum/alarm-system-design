@@ -270,7 +270,7 @@ NotificationAuditLog (선택)
 ```
 POST   /notifications                   요청 등록 (내부 호출)
 GET    /notifications/{id}              상태 조회
-GET    /me/notifications?read=false     수신함
+GET    /users/{userId}/notifications?read=false     수신함
 PATCH  /notifications/{id}/read         읽음 처리
 POST   /admin/notifications/{id}/retry  DEAD_LETTER 수동 재시도
 ```
