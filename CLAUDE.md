@@ -4,7 +4,13 @@
 
 ## 참조 문서
 
-- 설계 결정: [.claude/docs/design-guideline.md](.claude/docs/design-guideline.md) — 작업 전 먼저 읽는다
+작업 전 **반드시** 다음 두 문서를 먼저 읽는다:
+
+- 과제 요구사항: [.claude/docs/assignment.md](.claude/docs/assignment.md)
+- 설계 결정: [.claude/docs/design-guideline.md](.claude/docs/design-guideline.md)
+
+그 외:
+
 - Git 컨벤션: [.claude/docs/git-conventions.md](.claude/docs/git-conventions.md) — 브랜치·커밋·PR 규칙
 
 ## 기술 스택
