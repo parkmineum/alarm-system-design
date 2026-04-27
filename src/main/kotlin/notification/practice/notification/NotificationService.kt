@@ -87,7 +87,7 @@ class NotificationService(
         val notification = notifications.findById(id).orElseThrow { NotificationNotFoundException(id) }
         if (notification.recipientId != requesterId) throw NotificationNotFoundException(id)
         notifications.markReadIfUnread(id, Instant.now())
-        return NotificationResponse.from(notifications.findById(id).orElseThrow())
+        return NotificationResponse.from(notifications.findById(id).orElseThrow { NotificationNotFoundException(id) })
     }
 
     private fun isUniqueViolation(e: DataIntegrityViolationException): Boolean {

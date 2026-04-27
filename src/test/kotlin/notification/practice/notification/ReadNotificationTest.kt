@@ -92,7 +92,9 @@ class ReadNotificationTest
             ready.countDown()
             futures.forEach { it.get(5, TimeUnit.SECONDS) }
 
-            assertNotNull(load(response.id).readAt)
+            val finalReadAt = load(response.id).readAt
+            assertNotNull(finalReadAt)
+            repeat(3) { assertEquals(finalReadAt, load(response.id).readAt) }
         }
 
         private fun load(id: Long): Notification = tx.execute { notifications.findById(id).orElseThrow() }!!
