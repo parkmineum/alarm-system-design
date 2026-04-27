@@ -150,6 +150,8 @@ class AdminNotificationControllerTest
                 readAt = null,
                 processedAt = Instant.now(),
                 lastError = "connect timeout",
+                renderedBody = null,
+                templateVersion = null,
                 manualRetryCount = 0,
                 lastManualRetryAt = null,
                 createdAt = Instant.now(),

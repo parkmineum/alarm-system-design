@@ -104,13 +104,13 @@ class NotificationRegistrationTest
 
             val t1 = Instant.now().plusSeconds(3600)
             val t2 = Instant.now().plusSeconds(7200)
-            val r1 = service.register(sampleRequest(recipientId = 502L, refId = "sched-3", scheduledAt = t1))
-            val r2 = service.register(sampleRequest(recipientId = 502L, refId = "sched-3", scheduledAt = t2))
+            val r1 = service.register(sampleRequest(recipientId = 5002L, refId = "sched-3", scheduledAt = t1))
+            val r2 = service.register(sampleRequest(recipientId = 5002L, refId = "sched-3", scheduledAt = t2))
 
             assertNotNull(r1.id)
             assertNotNull(r2.id)
             assertTrue(r1.id != r2.id)
-            assertEquals(2, tx.execute { notifications.findByRecipientIdOrderByCreatedAtDesc(502L).size })
+            assertEquals(2, tx.execute { notifications.findByRecipientIdOrderByCreatedAtDesc(5002L).size })
         }
 
         private fun sampleRequest(
