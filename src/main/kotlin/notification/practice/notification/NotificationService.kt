@@ -1,6 +1,5 @@
 package notification.practice.notification
 
-import notification.practice.notification.dispatcher.NotificationDispatcher
 import notification.practice.notification.dto.NotificationResponse
 import notification.practice.notification.dto.RegisterNotificationRequest
 import org.springframework.dao.DataIntegrityViolationException
@@ -10,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class NotificationService(
     private val notifications: NotificationRepository,
-    private val dispatcher: NotificationDispatcher,
     private val persister: NotificationPersister,
 ) {
     fun register(request: RegisterNotificationRequest): NotificationResponse {
@@ -53,7 +51,6 @@ class NotificationService(
                     ?: throw IllegalStateException("멱등성 충돌 후 row 조회 실패", e)
             }
 
-        dispatcher.dispatch(saved)
         return NotificationResponse.from(saved)
     }
 

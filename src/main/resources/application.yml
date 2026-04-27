@@ -18,3 +18,8 @@ spring:
 
 server:
   port: 28080
+
+notification:
+  worker:
+    poll-interval-ms: 1000
+    batch-size: 50
