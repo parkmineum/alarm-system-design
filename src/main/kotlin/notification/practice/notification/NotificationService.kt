@@ -3,6 +3,7 @@ package notification.practice.notification
 import notification.practice.notification.dto.NotificationResponse
 import notification.practice.notification.dto.RegisterNotificationRequest
 import org.springframework.dao.DataIntegrityViolationException
+import java.time.Instant
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -76,6 +77,17 @@ class NotificationService(
                 false -> notifications.findByRecipientIdAndReadAtIsNullOrderByCreatedAtDesc(recipientId)
             }
         return rows.map(NotificationResponse::from)
+    }
+
+    @Transactional
+    fun markRead(
+        id: Long,
+        requesterId: Long,
+    ): NotificationResponse {
+        val notification = notifications.findById(id).orElseThrow { NotificationNotFoundException(id) }
+        if (notification.recipientId != requesterId) throw NotificationNotFoundException(id)
+        notifications.markReadIfUnread(id, Instant.now())
+        return NotificationResponse.from(notifications.findById(id).orElseThrow())
     }
 
     private fun isUniqueViolation(e: DataIntegrityViolationException): Boolean {

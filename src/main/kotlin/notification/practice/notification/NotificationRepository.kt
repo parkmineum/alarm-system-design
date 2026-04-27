@@ -38,6 +38,13 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
         pageable: Pageable,
     ): List<Notification>
 
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE Notification n SET n.readAt = :now, n.updatedAt = :now WHERE n.id = :id AND n.readAt IS NULL")
+    fun markReadIfUnread(
+        @Param("id") id: Long,
+        @Param("now") now: Instant,
+    ): Int
+
     @Modifying
     @Query(
         """UPDATE Notification n SET n.status = 'PENDING', n.updatedAt = :now
