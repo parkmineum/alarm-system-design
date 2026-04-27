@@ -143,6 +143,7 @@ class AdminNotificationControllerTest
                 channel = NotificationChannel.EMAIL,
                 refType = "COURSE",
                 refId = "c-100",
+                scheduledAt = Instant.now(),
                 status = NotificationStatus.DEAD_LETTER,
                 autoAttemptCount = 5,
                 nextRetryAt = null,

@@ -1,10 +1,12 @@
 package notification.practice.notification.dto
 
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.constraints.Future
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Size
 import notification.practice.notification.NotificationChannel
+import java.time.Instant
 
 @Schema(description = "알림 등록 요청")
 data class RegisterNotificationRequest(
@@ -28,4 +30,7 @@ data class RegisterNotificationRequest(
     val refId: String?,
     @Schema(description = "알림 본문 JSON", example = """{"courseName":"Kotlin in Action"}""", required = false)
     val payload: String? = null,
+    @Schema(description = "발송 예약 시각 (생략 시 즉시 발송)", example = "2026-05-01T09:00:00Z", required = false)
+    @field:Future
+    val scheduledAt: Instant? = null,
 )
