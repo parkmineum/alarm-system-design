@@ -11,6 +11,7 @@
 
 그 외:
 
+- 단계별 PR 계획: [.claude/docs/roadmap.md](.claude/docs/roadmap.md) — 작업 단위·순서
 - Git 컨벤션: [.claude/docs/git-conventions.md](.claude/docs/git-conventions.md) — 브랜치·커밋·PR 규칙
 
 ## 기술 스택
