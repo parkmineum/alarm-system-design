@@ -11,6 +11,7 @@ import jakarta.persistence.Index
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Entity
 @Table(
@@ -25,6 +26,10 @@ import java.time.Instant
         Index(
             name = "ix_notification_recipient_read",
             columnList = "recipient_id, read_at",
+        ),
+        Index(
+            name = "ix_notification_status_scheduled",
+            columnList = "status, scheduled_at",
         ),
     ],
 )
@@ -44,6 +49,8 @@ class Notification(
     val payload: String? = null,
     @Column(name = "idempotency_key", nullable = false, length = 64)
     val idempotencyKey: String,
+    @Column(name = "scheduled_at", nullable = false)
+    val scheduledAt: Instant = Instant.now().truncatedTo(ChronoUnit.MILLIS),
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -73,6 +80,11 @@ class Notification(
     @Column(name = "updated_at", nullable = false)
     var updatedAt: Instant = Instant.now()
         protected set
+
+    fun markProcessing(now: Instant = Instant.now()) {
+        status = NotificationStatus.PROCESSING
+        updatedAt = now
+    }
 
     fun markSent(now: Instant = Instant.now()) {
         status = NotificationStatus.SENT

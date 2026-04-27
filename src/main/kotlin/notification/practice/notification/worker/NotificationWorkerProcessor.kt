@@ -1,27 +1,33 @@
-package notification.practice.notification.dispatcher
+package notification.practice.notification.worker
 
 import notification.practice.notification.Notification
 import notification.practice.notification.NotificationRepository
 import notification.practice.notification.sender.NotificationSenderRegistry
 import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 
-class SyncDispatcher(
-    private val senderRegistry: NotificationSenderRegistry,
+@Component
+class NotificationWorkerProcessor(
     private val notifications: NotificationRepository,
-) : NotificationDispatcher {
+    private val senderRegistry: NotificationSenderRegistry,
+) {
     private val log = LoggerFactory.getLogger(javaClass)
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    override fun dispatch(notification: Notification) {
+    fun process(notification: Notification) {
+        notification.markProcessing()
+        notifications.save(notification)
+
         try {
             senderRegistry.find(notification.channel).send(notification)
             notification.markSent()
         } catch (e: Exception) {
-            log.warn("[dispatch] send failed id={} reason={}", notification.id, e.message)
+            log.warn("[worker] dispatch failed id={} reason={}", notification.id, e.message)
             notification.markFailed(e.message ?: e.javaClass.simpleName)
         }
+
         notifications.save(notification)
     }
 }
