@@ -48,12 +48,12 @@ class NotificationControllerTest
 
             mockMvc
                 .perform(
-                    post("/notifications")
+                    post("/api/v1/notifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)),
                 )
                 .andExpect(status().isCreated)
-                .andExpect(header().string("Location", "/notifications/${response.id}"))
+                .andExpect(header().string("Location", "/api/v1/notifications/${response.id}"))
                 .andExpect(jsonPath("$.id").value(response.id))
                 .andExpect(jsonPath("$.recipientId").value(response.recipientId))
                 .andExpect(jsonPath("$.type").value(response.type))
@@ -75,7 +75,7 @@ class NotificationControllerTest
 
             mockMvc
                 .perform(
-                    post("/notifications")
+                    post("/api/v1/notifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)),
                 )
@@ -91,7 +91,7 @@ class NotificationControllerTest
 
             mockMvc
                 .perform(
-                    post("/notifications")
+                    post("/api/v1/notifications")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body),
                 )
@@ -105,7 +105,7 @@ class NotificationControllerTest
             whenever(notificationService.get(1L, 1L)).thenReturn(response)
 
             mockMvc
-                .perform(get("/notifications/1").header("X-User-Id", "1"))
+                .perform(get("/api/v1/notifications/1").header("X-User-Id", "1"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.id").value(response.id))
                 .andExpect(jsonPath("$.status").value(response.status.name))
@@ -116,7 +116,7 @@ class NotificationControllerTest
             whenever(notificationService.get(999L, 1L)).thenThrow(NotificationNotFoundException(999L))
 
             mockMvc
-                .perform(get("/notifications/999").header("X-User-Id", "1"))
+                .perform(get("/api/v1/notifications/999").header("X-User-Id", "1"))
                 .andExpect(status().isNotFound)
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
         }
@@ -124,7 +124,7 @@ class NotificationControllerTest
         @Test
         fun `GET notifications id - X-User-Id 헤더가 없으면 400 과 MISSING_HEADER 를 돌려준다`() {
             mockMvc
-                .perform(get("/notifications/1"))
+                .perform(get("/api/v1/notifications/1"))
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("MISSING_HEADER"))
         }
@@ -132,7 +132,7 @@ class NotificationControllerTest
         @Test
         fun `GET me notifications - X-User-Id 헤더가 없으면 400 과 MISSING_HEADER 코드를 돌려준다`() {
             mockMvc
-                .perform(get("/me/notifications"))
+                .perform(get("/api/v1/me/notifications"))
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("MISSING_HEADER"))
         }
@@ -140,7 +140,7 @@ class NotificationControllerTest
         @Test
         fun `GET me notifications - X-User-Id 헤더가 숫자가 아니면 400 과 INVALID_PARAMETER 를 돌려준다`() {
             mockMvc
-                .perform(get("/me/notifications").header("X-User-Id", "abc"))
+                .perform(get("/api/v1/me/notifications").header("X-User-Id", "abc"))
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
         }
@@ -150,7 +150,7 @@ class NotificationControllerTest
             whenever(notificationService.listInbox(7L, false)).thenReturn(listOf(sampleResponse()))
 
             mockMvc
-                .perform(get("/me/notifications?read=false").header("X-User-Id", "7"))
+                .perform(get("/api/v1/me/notifications?read=false").header("X-User-Id", "7"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.length()").value(1))
         }

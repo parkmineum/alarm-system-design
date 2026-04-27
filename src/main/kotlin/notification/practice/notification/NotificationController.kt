@@ -24,7 +24,7 @@ import java.net.URI
 
 @Tag(name = "알림", description = "알림 등록 및 단건 조회")
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/api/v1/notifications")
 class NotificationController(
     private val notificationService: NotificationService,
 ) {
@@ -51,7 +51,7 @@ class NotificationController(
         @RequestBody @Valid request: RegisterNotificationRequest,
     ): ResponseEntity<NotificationResponse> {
         val response = notificationService.register(request)
-        return ResponseEntity.created(URI.create("/notifications/${response.id}")).body(response)
+        return ResponseEntity.created(URI.create("/api/v1/notifications/${response.id}")).body(response)
     }
 
     @Operation(summary = "알림 단건 조회", description = "요청자 본인의 알림만 조회할 수 있다. 타인 알림 접근 시 404를 반환한다.")

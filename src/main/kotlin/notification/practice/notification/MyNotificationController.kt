@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @Tag(name = "수신함", description = "내 알림 목록 조회")
 @RestController
-@RequestMapping("/me/notifications")
+@RequestMapping("/api/v1/me/notifications")
 class MyNotificationController(
     private val notificationService: NotificationService,
 ) {
