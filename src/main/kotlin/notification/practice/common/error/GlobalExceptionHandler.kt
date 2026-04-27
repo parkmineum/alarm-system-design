@@ -1,5 +1,6 @@
 package notification.practice.common.error
 
+import notification.practice.notification.NotificationIdempotencyConflictException
 import notification.practice.notification.NotificationNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -8,12 +9,18 @@ import org.springframework.web.bind.MissingRequestHeaderException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
     @ExceptionHandler(NotificationNotFoundException::class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     fun notFound(e: NotificationNotFoundException): ApiError = ApiError(code = "NOTIFICATION_NOT_FOUND", message = e.message ?: "")
+
+    @ExceptionHandler(NotificationIdempotencyConflictException::class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    fun idempotencyConflict(e: NotificationIdempotencyConflictException): ApiError =
+        ApiError(code = "IDEMPOTENCY_CONFLICT", message = e.message ?: "")
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
@@ -28,6 +35,11 @@ class GlobalExceptionHandler {
             details = fields,
         )
     }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun typeMismatch(e: MethodArgumentTypeMismatchException): ApiError =
+        ApiError(code = "INVALID_PARAMETER", message = "올바르지 않은 파라미터 값입니다: ${e.name}")
 
     @ExceptionHandler(HttpMessageNotReadableException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)

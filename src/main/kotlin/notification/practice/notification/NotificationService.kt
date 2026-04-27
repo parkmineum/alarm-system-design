@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional
 class NotificationService(
     private val notifications: NotificationRepository,
     private val dispatcher: NotificationDispatcher,
+    private val persister: NotificationPersister,
 ) {
-    @Transactional
     fun register(request: RegisterNotificationRequest): NotificationResponse {
         val recipientId = requireNotNull(request.recipientId)
         val type = requireNotNull(request.type)
@@ -29,11 +29,14 @@ class NotificationService(
                 channel = channel,
             )
 
-        notifications.findByIdempotencyKey(key)?.let { return NotificationResponse.from(it) }
+        notifications.findByIdempotencyKey(key)?.let { existing ->
+            if (existing.payload != request.payload) throw NotificationIdempotencyConflictException(key)
+            return NotificationResponse.from(existing)
+        }
 
         val saved =
             try {
-                notifications.saveAndFlush(
+                persister.insert(
                     Notification(
                         recipientId = recipientId,
                         type = type,
@@ -45,10 +48,9 @@ class NotificationService(
                     ),
                 )
             } catch (e: DataIntegrityViolationException) {
-                val existing =
-                    notifications.findByIdempotencyKey(key)
-                        ?: throw IllegalStateException("멱등성 충돌 후 row 조회 실패", e)
-                return NotificationResponse.from(existing)
+                if (!isUniqueViolation(e)) throw e
+                notifications.findByIdempotencyKey(key)
+                    ?: throw IllegalStateException("멱등성 충돌 후 row 조회 실패", e)
             }
 
         dispatcher.dispatch(saved)
@@ -56,8 +58,12 @@ class NotificationService(
     }
 
     @Transactional(readOnly = true)
-    fun get(id: Long): NotificationResponse {
+    fun get(
+        id: Long,
+        requesterId: Long,
+    ): NotificationResponse {
         val notification = notifications.findById(id).orElseThrow { NotificationNotFoundException(id) }
+        if (notification.recipientId != requesterId) throw NotificationNotFoundException(id)
         return NotificationResponse.from(notification)
     }
 
@@ -73,5 +79,16 @@ class NotificationService(
                 false -> notifications.findByRecipientIdAndReadAtIsNullOrderByCreatedAtDesc(recipientId)
             }
         return rows.map(NotificationResponse::from)
+    }
+
+    private fun isUniqueViolation(e: DataIntegrityViolationException): Boolean {
+        var cause: Throwable? = e.cause
+        while (cause != null) {
+            if (cause is java.sql.SQLException) {
+                return cause.sqlState?.startsWith("23") == true
+            }
+            cause = cause.cause
+        }
+        return false
     }
 }
