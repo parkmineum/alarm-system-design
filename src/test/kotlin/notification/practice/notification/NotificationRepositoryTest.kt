@@ -1,0 +1,75 @@
+package notification.practice.notification
+
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.dao.DataIntegrityViolationException
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+@DataJpaTest
+class NotificationRepositoryTest
+    @Autowired
+    constructor(
+        private val notifications: NotificationRepository,
+    ) {
+        @Test
+        fun `idempotency_key UNIQUE 제약이 중복 INSERT 를 차단한다`() {
+            val key = "duplicate-key"
+            notifications.saveAndFlush(notification(recipientId = 1L, idempotencyKey = key))
+
+            assertThrows<DataIntegrityViolationException> {
+                notifications.saveAndFlush(notification(recipientId = 2L, idempotencyKey = key))
+            }
+        }
+
+        @Test
+        fun `idempotency_key 로 단건 조회한다`() {
+            val saved = notifications.saveAndFlush(notification(idempotencyKey = "lookup-key"))
+
+            val found = notifications.findByIdempotencyKey("lookup-key")
+
+            assertEquals(saved.id, found?.id)
+            assertNull(notifications.findByIdempotencyKey("missing-key"))
+        }
+
+        @Test
+        fun `수신함은 최신순으로 반환되고 다른 수신자의 알림은 제외된다`() {
+            val older = notifications.saveAndFlush(notification(recipientId = 7L, idempotencyKey = "older"))
+            Thread.sleep(5)
+            val newer = notifications.saveAndFlush(notification(recipientId = 7L, idempotencyKey = "newer"))
+            notifications.saveAndFlush(notification(recipientId = 99L, idempotencyKey = "other-user"))
+
+            val rows = notifications.findByRecipientIdOrderByCreatedAtDesc(7L)
+
+            assertEquals(listOf(newer.id, older.id), rows.map { it.id })
+        }
+
+        @Test
+        fun `read 필터 — 모든 신규 알림은 읽지 않은 상태이므로 read=false 만 반환되고 read=true 는 비어 있다`() {
+            notifications.saveAndFlush(notification(recipientId = 7L, idempotencyKey = "n-1"))
+            notifications.saveAndFlush(notification(recipientId = 7L, idempotencyKey = "n-2"))
+
+            val unread = notifications.findByRecipientIdAndReadAtIsNullOrderByCreatedAtDesc(7L)
+            val read = notifications.findByRecipientIdAndReadAtIsNotNullOrderByCreatedAtDesc(7L)
+
+            assertEquals(2, unread.size)
+            assertTrue(read.isEmpty())
+        }
+
+        private fun notification(
+            recipientId: Long = 1L,
+            idempotencyKey: String,
+        ): Notification =
+            Notification(
+                recipientId = recipientId,
+                type = "COURSE_ENROLLMENT_COMPLETED",
+                channel = NotificationChannel.EMAIL,
+                refType = "COURSE",
+                refId = "c-100",
+                payload = null,
+                idempotencyKey = idempotencyKey,
+            )
+    }
