@@ -31,7 +31,7 @@ class AdminNotificationControllerTest
 
         @Test
         fun `GET dead-letters - 200 과 목록을 돌려준다`() {
-            whenever(adminService.listDeadLetters()).thenReturn(listOf(deadLetterResponse()))
+            whenever(adminService.listDeadLetters(any(), any())).thenReturn(listOf(deadLetterResponse()))
 
             mockMvc
                 .perform(get("/api/v1/admin/notifications/dead-letters"))
@@ -42,7 +42,7 @@ class AdminNotificationControllerTest
 
         @Test
         fun `GET dead-letters - 빈 목록도 200 으로 응답한다`() {
-            whenever(adminService.listDeadLetters()).thenReturn(emptyList())
+            whenever(adminService.listDeadLetters(any(), any())).thenReturn(emptyList())
 
             mockMvc
                 .perform(get("/api/v1/admin/notifications/dead-letters"))
@@ -110,6 +110,29 @@ class AdminNotificationControllerTest
                 )
                 .andExpect(status().isNotFound)
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
+        }
+
+        @Test
+        fun `POST retry - actorId 가 빈 문자열이면 400 과 INVALID_REQUEST 를 돌려준다`() {
+            whenever(adminService.retry(any(), any())).thenThrow(IllegalArgumentException("actorId 는 비어있을 수 없습니다"))
+
+            mockMvc
+                .perform(
+                    post("/api/v1/admin/notifications/1/retry")
+                        .header("X-Actor-Id", "   "),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+        }
+
+        @Test
+        fun `GET dead-letters - page 와 size 파라미터를 서비스에 전달한다`() {
+            whenever(adminService.listDeadLetters(eq(1), eq(10))).thenReturn(listOf(deadLetterResponse()))
+
+            mockMvc
+                .perform(get("/api/v1/admin/notifications/dead-letters?page=1&size=10"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.length()").value(1))
         }
 
         private fun deadLetterResponse(): NotificationResponse =

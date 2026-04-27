@@ -64,4 +64,9 @@ class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
     fun manualRetryLimitExceeded(e: ManualRetryLimitExceededException): ApiError =
         ApiError(code = "MANUAL_RETRY_LIMIT_EXCEEDED", message = e.message ?: "")
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun illegalArgument(e: IllegalArgumentException): ApiError =
+        ApiError(code = "INVALID_REQUEST", message = e.message ?: "잘못된 요청입니다")
 }

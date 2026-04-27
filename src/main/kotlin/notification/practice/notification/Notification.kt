@@ -90,9 +90,6 @@ class Notification(
     var manualRetryCount: Int = 0
         protected set
 
-    @Column(name = "max_manual_retries", nullable = false)
-    val maxManualRetries: Int = DEFAULT_MAX_MANUAL_RETRIES
-
     @Column(name = "last_manual_retry_at")
     var lastManualRetryAt: Instant? = null
         protected set
@@ -138,6 +135,8 @@ class Notification(
         }
     }
 
+    // autoAttemptCount 를 0 으로 리셋하므로 수동 재시도 1회당 자동 시도 최대 DEFAULT_MAX_AUTO_ATTEMPTS 회가 새로 소비된다.
+    // 최악의 경우 총 자동 시도 수 = DEFAULT_MAX_MANUAL_RETRIES × DEFAULT_MAX_AUTO_ATTEMPTS.
     fun requeue(
         actorId: String,
         now: Instant = Instant.now(),
@@ -145,6 +144,7 @@ class Notification(
         status = NotificationStatus.PENDING
         autoAttemptCount = 0
         nextRetryAt = null
+        lastError = null
         manualRetryCount++
         lastManualRetryAt = now
         lastManualRetryActorId = actorId

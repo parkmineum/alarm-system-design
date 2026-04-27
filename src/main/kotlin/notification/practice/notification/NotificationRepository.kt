@@ -1,13 +1,22 @@
 package notification.practice.notification
 
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 import java.time.Instant
+import java.util.Optional
 
 interface NotificationRepository : JpaRepository<Notification, Long> {
     fun findByIdempotencyKey(idempotencyKey: String): Notification?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM Notification n WHERE n.id = :id")
+    fun findByIdForUpdate(
+        @Param("id") id: Long,
+    ): Optional<Notification>
 
     @Query(
         """SELECT n FROM Notification n
@@ -45,5 +54,5 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
     ): List<Notification>
 
     @Query("SELECT n FROM Notification n WHERE n.status = 'DEAD_LETTER' ORDER BY n.createdAt DESC, n.id DESC")
-    fun findDeadLetters(): List<Notification>
+    fun findDeadLetters(pageable: Pageable): List<Notification>
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -15,7 +16,10 @@ class AdminNotificationController(
     private val adminService: AdminNotificationService,
 ) {
     @GetMapping("/dead-letters")
-    fun listDeadLetters(): ResponseEntity<List<NotificationResponse>> = ResponseEntity.ok(adminService.listDeadLetters())
+    fun listDeadLetters(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "50") size: Int,
+    ): ResponseEntity<List<NotificationResponse>> = ResponseEntity.ok(adminService.listDeadLetters(page, size))
 
     @PostMapping("/{id}/retry")
     fun retry(
