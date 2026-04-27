@@ -78,6 +78,14 @@ class Notification(
     var lastError: String? = null
         protected set
 
+    @Column(name = "rendered_body", columnDefinition = "TEXT")
+    var renderedBody: String? = null
+        protected set
+
+    @Column(name = "template_version")
+    var templateVersion: Int? = null
+        protected set
+
     @Column(name = "read_at")
     var readAt: Instant? = null
         protected set
@@ -108,6 +116,15 @@ class Notification(
     fun markProcessing(now: Instant = Instant.now()) {
         status = NotificationStatus.PROCESSING
         updatedAt = now
+    }
+
+    fun applyRenderedTemplate(
+        body: String,
+        version: Int,
+    ) {
+        renderedBody = body
+        templateVersion = version
+        updatedAt = Instant.now()
     }
 
     fun markSent(now: Instant = Instant.now()) {
