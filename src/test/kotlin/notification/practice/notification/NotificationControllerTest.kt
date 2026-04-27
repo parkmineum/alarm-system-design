@@ -60,6 +60,7 @@ class NotificationControllerTest
                 .andExpect(jsonPath("$.channel").value(response.channel.name))
                 .andExpect(jsonPath("$.refType").value(response.refType))
                 .andExpect(jsonPath("$.refId").value(response.refId))
+                .andExpect(jsonPath("$.scheduledAt").isString)
                 .andExpect(jsonPath("$.status").value(response.status.name))
         }
 
@@ -209,6 +210,21 @@ class NotificationControllerTest
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
                 .andExpect(jsonPath("$.details.scheduledAt").exists())
+        }
+
+        @Test
+        fun `POST notifications - scheduledAt 이 1초 전이어도 400 을 돌려준다`() {
+            val nearPast = Instant.now().minusSeconds(1).toString()
+            val body = """{"recipientId":1,"type":"T","channel":"EMAIL","refType":"R","refId":"1","scheduledAt":"$nearPast"}"""
+
+            mockMvc
+                .perform(
+                    post("/api/v1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
         }
 
         private fun sampleResponse(): NotificationResponse =
