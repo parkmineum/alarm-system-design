@@ -6,6 +6,8 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.PageRequest
+import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -64,6 +66,36 @@ class NotificationRepositoryTest
             assertEquals(listOf(n1.id), read.map { it.id })
             assertFalse(read.isEmpty())
             assertTrue(unread.none { it.id == n1.id })
+        }
+
+        @Test
+        fun `findDispatchable 은 nextRetryAt 이 과거인 FAILED 알림도 반환한다`() {
+            val n = notifications.saveAndFlush(notification(idempotencyKey = "failed-past"))
+            em.createNativeQuery(
+                "UPDATE notification SET status = 'FAILED', next_retry_at = :past WHERE id = :id",
+            ).setParameter("past", java.sql.Timestamp.from(Instant.EPOCH))
+                .setParameter("id", n.id)
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findDispatchable(Instant.now(), PageRequest.of(0, 10))
+            assertTrue(result.any { it.id == n.id })
+        }
+
+        @Test
+        fun `findDispatchable 은 nextRetryAt 이 미래인 FAILED 알림을 반환하지 않는다`() {
+            val n = notifications.saveAndFlush(notification(idempotencyKey = "failed-future"))
+            em.createNativeQuery(
+                "UPDATE notification SET status = 'FAILED', next_retry_at = :future WHERE id = :id",
+            ).setParameter("future", java.sql.Timestamp.from(Instant.now().plusSeconds(3600)))
+                .setParameter("id", n.id)
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findDispatchable(Instant.now(), PageRequest.of(0, 10))
+            assertTrue(result.none { it.id == n.id })
         }
 
         private fun notification(
