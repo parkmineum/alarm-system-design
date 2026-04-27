@@ -4,7 +4,6 @@ import notification.practice.notification.Notification
 import notification.practice.notification.NotificationChannel
 import notification.practice.notification.NotificationRepository
 import notification.practice.notification.NotificationStatus
-import notification.practice.notification.dispatcher.SyncDispatcher
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry
 import org.junit.jupiter.api.Test

@@ -7,7 +7,6 @@ import notification.practice.notification.NotificationStatus
 import notification.practice.notification.dto.RegisterNotificationRequest
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry
-import notification.practice.notification.worker.NotificationWorker
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doThrow
