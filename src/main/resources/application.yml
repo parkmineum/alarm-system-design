@@ -23,3 +23,6 @@ notification:
   worker:
     poll-interval-ms: 1000
     batch-size: 50
+
+springdoc:
+  override-with-generic-response: false
