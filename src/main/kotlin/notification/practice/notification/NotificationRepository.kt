@@ -43,7 +43,7 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
         """UPDATE Notification n SET n.status = 'PENDING', n.updatedAt = :now
            WHERE n.status = 'PROCESSING' AND n.updatedAt <= :cutoff""",
     )
-    fun resetZombies(
+    fun resetTimedOutProcessing(
         @Param("cutoff") cutoff: Instant,
         @Param("now") now: Instant,
     ): Int

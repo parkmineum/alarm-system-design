@@ -3,7 +3,7 @@ package notification.practice.notification
 import notification.practice.notification.dto.RegisterNotificationRequest
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry
-import notification.practice.notification.worker.ZombieRecoveryJob
+import notification.practice.notification.worker.ProcessingTimeoutRecoveryJob
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
@@ -21,15 +21,15 @@ import kotlin.test.assertEquals
 @TestPropertySource(
     properties = [
         "notification.worker.poll-interval-ms=999999",
-        "notification.zombie.check-interval-ms=999999",
+        "notification.processing-timeout.check-interval-ms=999999",
     ],
 )
-class ZombieRecoveryTest
+class ProcessingTimeoutRecoveryTest
     @Autowired
     constructor(
         private val service: NotificationService,
         private val notifications: NotificationRepository,
-        private val zombieRecoveryJob: ZombieRecoveryJob,
+        private val recoveryJob: ProcessingTimeoutRecoveryJob,
         private val tx: TransactionTemplate,
         private val jdbc: JdbcTemplate,
     ) {
@@ -37,14 +37,14 @@ class ZombieRecoveryTest
         private lateinit var senderRegistry: NotificationSenderRegistry
 
         @Test
-        fun `PROCESSING 상태가 좀비 타임아웃을 초과하면 PENDING 으로 복원된다`() {
+        fun `PROCESSING 상태가 처리 타임아웃을 초과하면 PENDING 으로 복원된다`() {
             val sender = org.mockito.kotlin.mock<NotificationSender>()
             whenever(senderRegistry.find(any())).thenReturn(sender)
 
-            val response = service.register(sampleRequest(recipientId = 500L, refId = "zombie-1"))
-            forceProcessingWithOldUpdatedAt(response.id, ZombieRecoveryJob.ZOMBIE_TIMEOUT_SECONDS + 60)
+            val response = service.register(sampleRequest(recipientId = 500L, refId = "timeout-1"))
+            forceProcessingWithOldUpdatedAt(response.id, ProcessingTimeoutRecoveryJob.PROCESSING_TIMEOUT_SECONDS + 60)
 
-            zombieRecoveryJob.recover()
+            recoveryJob.recover()
 
             val stored = load(response.id)
             assertEquals(NotificationStatus.PENDING, stored.status)
@@ -55,10 +55,10 @@ class ZombieRecoveryTest
             val sender = org.mockito.kotlin.mock<NotificationSender>()
             whenever(senderRegistry.find(any())).thenReturn(sender)
 
-            val response = service.register(sampleRequest(recipientId = 501L, refId = "zombie-2"))
-            forceProcessingWithOldUpdatedAt(response.id, ZombieRecoveryJob.ZOMBIE_TIMEOUT_SECONDS - 60)
+            val response = service.register(sampleRequest(recipientId = 501L, refId = "timeout-2"))
+            forceProcessingWithOldUpdatedAt(response.id, ProcessingTimeoutRecoveryJob.PROCESSING_TIMEOUT_SECONDS - 60)
 
-            zombieRecoveryJob.recover()
+            recoveryJob.recover()
 
             val stored = load(response.id)
             assertEquals(NotificationStatus.PROCESSING, stored.status)

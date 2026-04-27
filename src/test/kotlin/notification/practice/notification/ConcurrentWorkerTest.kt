@@ -23,7 +23,7 @@ import kotlin.test.assertEquals
 @TestPropertySource(
     properties = [
         "notification.worker.poll-interval-ms=999999",
-        "notification.zombie.check-interval-ms=999999",
+        "notification.processing-timeout.check-interval-ms=999999",
     ],
 )
 class ConcurrentWorkerTest
