@@ -162,7 +162,7 @@ erDiagram
     notification }o..|| notification_template : "type+channel+template_version 으로 발송 시 스냅샷"
 ```
 
-`notification` 과 `notification_template` 은 FK 로 묶이지 않는다. 발송 시점에 렌더 결과(`rendered_body`)와 스냅샷 버전(`template_version`)을 `notification` 자체에 박아 넣어 — 템플릿이 나중에 수정되어도 발송된 메시지는 보존된다.
+`notification` 과 `notification_template` 은 FK 로 묶이지 않는다. 발송 시점에 렌더 결과(`rendered_body`)와 스냅샷 버전(`template_version`)을 `notification` 자체에 저장해 — 템플릿이 나중에 수정되어도 발송된 메시지는 보존된다.
 
 ### 인덱스
 
