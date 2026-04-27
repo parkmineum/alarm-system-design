@@ -196,6 +196,45 @@ docker compose up -d
 | `app` | `28080` | http://localhost:28080/swagger-ui/index.html |
 | `mysql` | `23306` | `notification` DB |
 
+### E2E — Swagger / curl 흐름
+
+슬라이스 / 통합 테스트가 통과해도 실제로 띄운 앱이 같은 동작을 하는지는 별도 검증이 필요하다. 자동화는 [`NotificationE2eTest`](src/test/kotlin/notification/practice/e2e/NotificationE2eTest.kt) 가 Testcontainers 로 MySQL 8 을 띄워 임의 포트의 앱에 RestAssured 로 호출하고, 비동기 전이는 Awaitility 로 폴링한다 — `./gradlew test --tests "notification.practice.e2e.*"`. 손으로 한 번 점검하고 싶으면 앱을 띄우고 (`docker compose up -d` 또는 `./gradlew bootRun`) 아래 흐름을 따라가면 된다. 결과는 [`docs/e2e-checklist.md`](docs/e2e-checklist.md) 에 응답 본문까지 기록해 두었다.
+
+```bash
+# 1. 템플릿 등록 (EMAIL + IN_APP, 같은 type 으로 채널만 다르게)
+curl -i -X POST http://localhost:28080/api/v1/admin/templates \
+  -H "Content-Type: application/json" \
+  -d '{"type":"COURSE_ENROLLMENT_COMPLETED","channel":"EMAIL","subject":"[Hello] {{userName}}","body":"Course: {{courseName}}"}'
+
+# 2. 알림 등록 — 같은 페이로드로 두 번 호출 (응답의 id 가 동일해야 멱등 OK)
+curl -i -X POST http://localhost:28080/api/v1/notifications \
+  -H "Content-Type: application/json" \
+  -d '{"recipientId":42,"type":"COURSE_ENROLLMENT_COMPLETED","channel":"EMAIL","refType":"COURSE","refId":"c-100","payload":"{\"userName\":\"민음\",\"courseName\":\"Kotlin\"}"}'
+
+# 3. 단건 조회 (X-User-Id 누락 → 400, 타인 ID → 404)
+curl -i http://localhost:28080/api/v1/notifications/1 -H "X-User-Id: 42"
+
+# 4. 읽음 처리 (두 번 호출해도 readAt 동일해야 멱등 OK)
+curl -i -X PATCH http://localhost:28080/api/v1/notifications/1/read -H "X-User-Id: 42"
+
+# 5. 수신함 목록 (read 필터)
+curl -s "http://localhost:28080/api/v1/users/42/notifications?read=false"
+
+# 6. DLQ 목록 / 수동 재시도
+curl -s "http://localhost:28080/api/v1/admin/notifications/dead-letters?page=0&size=10"
+curl -i -X POST http://localhost:28080/api/v1/admin/notifications/1/retry -H "X-Actor-Id: admin-1"
+```
+
+| 검증 포인트 | 기대 결과 |
+|---|---|
+| 동일 페이로드 재요청 | `201` + 같은 `id`, `status` 가 `PENDING → SENT` 로 진행 |
+| 페이로드만 다른 동일 멱등키 | `409 IDEMPOTENCY_CONFLICT` |
+| 타인 알림 단건 조회 | `404 NOTIFICATION_NOT_FOUND` (정보 노출 차단) |
+| 읽음 처리 N회 | `readAt` 이 첫 호출 시각으로 고정 |
+| `PENDING` 알림 | 워커 폴링 후 `SENT` + `renderedBody` 채워짐 (비동기 동작 확인) |
+| `DEAD_LETTER` 아닌 row 에 retry | `409 NOT_DEAD_LETTER` |
+| 검증 실패 / 헤더 누락 | `400 VALIDATION_FAILED` 또는 `MISSING_HEADER` + `details` 동봉 |
+
 ---
 
 ## 설계 결정과 사고 과정
@@ -421,13 +460,16 @@ SELECT * FROM notification
 
 ## 검증 결과
 
-`./gradlew test` 한 번으로 전체 검증이 돌아간다. 총 **93 건** 통과, 0 실패. 슬라이스를 의도적으로 분리해 어떤 레이어에서 실패가 났는지 즉시 식별 가능하다.
+`./gradlew test` 한 번으로 전체 검증이 돌아간다. 슬라이스를 의도적으로 분리해 어떤 레이어에서 실패가 났는지 즉시 식별 가능하다.
 
 | 슬라이스 | 어노테이션 | 검증 대상 |
 |---|---|---|
 | Repository | `@DataJpaTest` | JPA 쿼리, UNIQUE 제약, 인덱스 의존 정렬 |
 | Web | `@WebMvcTest` | 컨트롤러 라우팅, 검증, 에러 응답 형식 |
-| 통합 (워커 포함) | `@SpringBootTest` | 트랜잭션 경계, 워커 폴링, 처리 타임아웃 복구, 다중 워커 동시성 |
+| 통합 (워커 포함) | `@SpringBootTest` (H2) | 트랜잭션 경계, 워커 폴링, 처리 타임아웃 복구, 다중 워커 동시성 |
+| E2E | `@SpringBootTest(RANDOM_PORT)` + Testcontainers MySQL 8 + RestAssured + Awaitility | 운영 DB 위에서 HTTP 단으로 본 멱등성·비동기 전이·권한·필터·DLQ 라우팅 |
+
+E2E 만 따로 돌리려면 `./gradlew test --tests "notification.practice.e2e.*"`. CI 빠른 단계에서 빼고 싶으면 `./gradlew test -PexcludeE2E` (`@Tag("e2e")` 제외).
 
 ### 빌드 / 린트 / 컴파일
 
@@ -450,3 +492,4 @@ SELECT * FROM notification
 | 템플릿 버전 정책 | [`template/NotificationTemplateRepositoryTest`](src/test/kotlin/notification/practice/notification/template/NotificationTemplateRepositoryTest.kt) |
 | 읽음 처리 멱등 (다중 기기) | [`ReadNotificationTest`](src/test/kotlin/notification/practice/notification/ReadNotificationTest.kt) |
 | DEAD_LETTER 보관 + 수동 재시도 + 한도 가드 | [`ManualRetryTest`](src/test/kotlin/notification/practice/notification/ManualRetryTest.kt), [`AdminNotificationControllerTest`](src/test/kotlin/notification/practice/notification/AdminNotificationControllerTest.kt) |
+| 운영 DB(MySQL 8) 위 HTTP 통합 흐름 | [`e2e/NotificationE2eTest`](src/test/kotlin/notification/practice/e2e/NotificationE2eTest.kt) |
