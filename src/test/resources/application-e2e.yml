@@ -1,0 +1,16 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+notification:
+  worker:
+    poll-interval-ms: 200
+    batch-size: 50
+  processing-timeout:
+    check-interval-ms: 60000
