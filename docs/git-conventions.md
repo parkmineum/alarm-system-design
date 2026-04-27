@@ -64,7 +64,7 @@ feat(notification): 멱등성 키와 DB UNIQUE 제약 도입
 
 ### 제목
 
-커밋과 동일한 형식. **한국어로 작성**.
+커밋과 동일한 형식. **한국어로 작성**. 단, 고유명사·기술 용어 (ktlint, Kafka, Outbox, Claude 등) 는 영어 그대로 쓴다.
 
 ```
 <type>(<scope>): <한줄 요약>
@@ -74,7 +74,7 @@ feat(notification): 멱등성 키와 DB UNIQUE 제약 도입
 
 - `feat(notification): 멱등성 키와 DB UNIQUE 제약 도입`
 - `refactor(worker): 폴링 루프를 별도 트랜잭션으로 분리`
-- `chore(infra): 앱·DB 포트 비기본값으로 변경`
+- `chore: Claude Workflow 설정 (문서, 훅, 포트)`
 
 ### 본문 구성
 
