@@ -17,9 +17,6 @@ class NotificationWorkerProcessor(
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun process(notification: Notification) {
-        notification.markProcessing()
-        notifications.save(notification)
-
         try {
             senderRegistry.find(notification.channel).send(notification)
             notification.markSent()
@@ -27,7 +24,6 @@ class NotificationWorkerProcessor(
             log.warn("[worker] dispatch failed id={} reason={}", notification.id, e.message)
             notification.markFailed(e.message ?: e.javaClass.simpleName)
         }
-
         notifications.save(notification)
     }
 }
