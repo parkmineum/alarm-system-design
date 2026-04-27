@@ -111,6 +111,18 @@ feat(notification): 멱등성 키와 DB UNIQUE 제약 도입
 - 큰 리팩토링 → `Summary` / `배경` / `접근` / `변경 내역` / `영향` / `Test plan`
 - 문서만 → `Summary` / `Test plan` (체크박스 1~2개만으로 충분)
 
+### 작성 절차
+
+PR 본문을 쓰기 **전에** 반드시 다음 명령으로 머지된 PR 2~3개를 확인하고 제목·본문 스타일을 맞춘다.
+
+```bash
+gh pr list --repo parkmineum/alarm-system-design --state merged --limit 3 --json number,title,body
+```
+
+스타일을 먼저 보지 않고 기본 포맷으로 쓰지 않는다.
+
+---
+
 ### 원칙
 
 - Summary 는 변경 파일 나열이 아니라 **시스템·사용자 관점의 변화**를 적는다.
