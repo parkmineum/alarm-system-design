@@ -13,7 +13,7 @@ services:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
     ports:
-      - "3306:3306"
+      - "23306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -37,7 +37,7 @@ services:
       DB_PASSWORD: notification
       TZ: Asia/Seoul
     ports:
-      - "8080:8080"
+      - "28080:28080"
 
 volumes:
   mysql-data:

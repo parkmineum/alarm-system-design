@@ -2,7 +2,7 @@ spring:
   application:
     name: notification-practice
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/notification?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8}
+    url: ${DB_URL:jdbc:mysql://localhost:23306/notification?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8}
     username: ${DB_USERNAME:notification}
     password: ${DB_PASSWORD:notification}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,4 +17,4 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
 
 server:
-  port: 8080
+  port: 28080
