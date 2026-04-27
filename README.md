@@ -1,29 +1,21 @@
 # 알림 발송 시스템
 
-수강 신청 / 결제 확정 / 강의 시작 D-1 / 취소 등 도메인 이벤트가 발생할 때 EMAIL · IN_APP 알림을 비동기로 발송한다.
-브로커 없이 DB 기반 outbox + 폴링 워커로 구현했고, 운영 환경에서 메시지 큐 (Kafka, RabbitMQ 등) 로 점진 전환 가능한 형태로 추상화했다.
+DB 기반 outbox + 폴링 워커 구조. 메시지 큐 (Kafka, RabbitMQ 등) 로 점진 전환 가능하도록 추상화.
 
-테스트 93건 모두 통과 — `./gradlew test`
-
-추가 문서:
-
-- 비동기 처리 구조 + 재시도 정책 → [docs/async-and-retry.md](docs/async-and-retry.md)
-- 요구사항 해석 + 개선 의견 → [docs/interpretation.md](docs/interpretation.md)
+추가 문서: [비동기 처리 구조 + 재시도 정책](docs/async-and-retry.md) · [요구사항 해석 + 개선 의견](docs/interpretation.md)
 
 ---
 
-## Quick Start — Docker
+## 실행
 
 ```bash
 docker compose up -d
 ```
 
-| 서비스 | 포트 | 비고 |
+| 서비스 | 포트 | |
 |---|---|---|
-| `app` | `28080` | Swagger UI → http://localhost:28080/swagger-ui/index.html |
+| `app` | `28080` | http://localhost:28080/swagger-ui/index.html |
 | `mysql` | `23306` | `notification` DB |
-
-멀티스테이지 빌드 → `mysql` healthcheck 통과 후 앱 기동 → JPA `ddl-auto=update` 로 스키마 자동 생성.
 
 ---
 
@@ -203,21 +195,6 @@ PENDING ──claim──▶ PROCESSING ──send 성공──▶ SENT         
 ```
 
 </details>
-
----
-
-## 로컬 실행 (Docker 없이)
-
-MySQL 만 컨테이너로 띄우고 앱은 IDE / Gradle 로 실행하는 흐름.
-
-```bash
-docker compose up -d mysql   # MySQL 만 기동
-./gradlew bootRun            # 앱 실행 (28080)
-./gradlew ktlintCheck        # 린트
-./gradlew test               # 테스트
-```
-
-`application.yml` 의 `DB_URL` 기본값이 `jdbc:mysql://localhost:23306/notification` 이라 MySQL 컨테이너만 떠 있으면 그대로 동작한다.
 
 ---
 
