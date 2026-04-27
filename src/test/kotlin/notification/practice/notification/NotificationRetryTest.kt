@@ -53,7 +53,7 @@ class NotificationRetryTest
         }
 
         @Test
-        fun `재시도 성공 시 SENT 전이`() {
+        fun `1회 실패 후 재시도 성공 시 SENT 전이`() {
             val sender = mock<NotificationSender>()
             whenever(senderRegistry.find(any())).thenReturn(sender)
             var callCount = 0
@@ -71,6 +71,30 @@ class NotificationRetryTest
             val stored = load(response.id)
             assertEquals(NotificationStatus.SENT, stored.status)
             assertEquals(1, stored.autoAttemptCount)
+            assertNull(stored.lastError)
+        }
+
+        @Test
+        fun `2회 실패 후 재시도 성공 시 SENT 전이, autoAttemptCount=2 유지`() {
+            val sender = mock<NotificationSender>()
+            whenever(senderRegistry.find(any())).thenReturn(sender)
+            var callCount = 0
+            doAnswer { if (++callCount <= 2) throw RuntimeException("failure $callCount") }
+                .whenever(sender).send(any())
+
+            val response = service.register(sampleRequest(recipientId = 303L, refId = "retry-4"))
+
+            worker.poll()
+            assertEquals(NotificationStatus.FAILED, load(response.id).status)
+            forceNextRetryAtPast(response.id)
+            worker.poll()
+            assertEquals(NotificationStatus.FAILED, load(response.id).status)
+            forceNextRetryAtPast(response.id)
+            worker.poll()
+
+            val stored = load(response.id)
+            assertEquals(NotificationStatus.SENT, stored.status)
+            assertEquals(2, stored.autoAttemptCount)
             assertNull(stored.lastError)
         }
 
@@ -98,25 +122,23 @@ class NotificationRetryTest
             val sender = failingSender("fail")
             whenever(senderRegistry.find(any())).thenReturn(sender)
 
-            Notification.BACKOFF_MINUTES.take(Notification.DEFAULT_MAX_AUTO_ATTEMPTS - 1)
-                .forEachIndexed { attempt, expectedMinutes ->
-                    val response =
-                        service.register(sampleRequest(recipientId = 310L + attempt, refId = "backoff-$attempt"))
+            Notification.BACKOFF_SECONDS.forEachIndexed { attempt, expectedSeconds ->
+                val response =
+                    service.register(sampleRequest(recipientId = 310L + attempt, refId = "backoff-$attempt"))
 
-                    repeat(attempt + 1) { i ->
-                        if (i > 0) forceNextRetryAtPast(response.id)
-                        worker.poll()
-                    }
-
-                    val stored = load(response.id)
-                    val actualDelay = stored.nextRetryAt!!.epochSecond - stored.processedAt!!.epochSecond
-                    val expectedDelay = expectedMinutes * 60
-
-                    assertTrue(
-                        actualDelay in (expectedDelay - 5)..(expectedDelay + 5),
-                        "attempt=${attempt + 1}: expected ~${expectedDelay}s got ${actualDelay}s",
-                    )
+                repeat(attempt + 1) { i ->
+                    if (i > 0) forceNextRetryAtPast(response.id)
+                    worker.poll()
                 }
+
+                val stored = load(response.id)
+                val actualDelay = stored.nextRetryAt!!.epochSecond - stored.processedAt!!.epochSecond
+
+                assertTrue(
+                    actualDelay in (expectedSeconds - 5)..(expectedSeconds + 5),
+                    "attempt=${attempt + 1}: expected ~${expectedSeconds}s got ${actualDelay}s",
+                )
+            }
         }
 
         private fun load(id: Long): Notification = tx.execute { notifications.findById(id).orElseThrow() }!!

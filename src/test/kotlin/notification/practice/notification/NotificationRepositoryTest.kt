@@ -69,32 +69,55 @@ class NotificationRepositoryTest
         }
 
         @Test
-        fun `findDispatchable 은 nextRetryAt 이 과거인 FAILED 알림도 반환한다`() {
-            val n = notifications.saveAndFlush(notification(idempotencyKey = "failed-past"))
+        fun `findPendingDispatchable 은 scheduledAt 이 과거인 PENDING 만 반환한다`() {
+            val past = notifications.saveAndFlush(notification(idempotencyKey = "pending-past"))
+            val future = notifications.saveAndFlush(
+                Notification(
+                    recipientId = 1L, type = "T", channel = NotificationChannel.EMAIL,
+                    refType = "R", refId = "r", idempotencyKey = "pending-future",
+                    scheduledAt = Instant.now().plusSeconds(3600),
+                ),
+            )
+
+            val result = notifications.findPendingDispatchable(Instant.now(), PageRequest.of(0, 10))
+            assertTrue(result.any { it.id == past.id })
+            assertTrue(result.none { it.id == future.id })
+        }
+
+        @Test
+        fun `findRetriableDispatchable 은 nextRetryAt 이 과거인 FAILED 만 반환한다`() {
+            val pastFailed = notifications.saveAndFlush(notification(idempotencyKey = "failed-past"))
+            val futureFailed = notifications.saveAndFlush(notification(idempotencyKey = "failed-future"))
             em.createNativeQuery(
                 "UPDATE notification SET status = 'FAILED', next_retry_at = :past WHERE id = :id",
+            ).setParameter("past", java.sql.Timestamp.from(Instant.EPOCH))
+                .setParameter("id", pastFailed.id)
+                .executeUpdate()
+            em.createNativeQuery(
+                "UPDATE notification SET status = 'FAILED', next_retry_at = :future WHERE id = :id",
+            ).setParameter("future", java.sql.Timestamp.from(Instant.now().plusSeconds(3600)))
+                .setParameter("id", futureFailed.id)
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findRetriableDispatchable(Instant.now(), PageRequest.of(0, 10))
+            assertTrue(result.any { it.id == pastFailed.id })
+            assertTrue(result.none { it.id == futureFailed.id })
+        }
+
+        @Test
+        fun `findRetriableDispatchable 은 DEAD_LETTER 알림을 반환하지 않는다`() {
+            val n = notifications.saveAndFlush(notification(idempotencyKey = "dead-letter"))
+            em.createNativeQuery(
+                "UPDATE notification SET status = 'DEAD_LETTER', next_retry_at = :past WHERE id = :id",
             ).setParameter("past", java.sql.Timestamp.from(Instant.EPOCH))
                 .setParameter("id", n.id)
                 .executeUpdate()
             em.flush()
             em.clear()
 
-            val result = notifications.findDispatchable(Instant.now(), PageRequest.of(0, 10))
-            assertTrue(result.any { it.id == n.id })
-        }
-
-        @Test
-        fun `findDispatchable 은 nextRetryAt 이 미래인 FAILED 알림을 반환하지 않는다`() {
-            val n = notifications.saveAndFlush(notification(idempotencyKey = "failed-future"))
-            em.createNativeQuery(
-                "UPDATE notification SET status = 'FAILED', next_retry_at = :future WHERE id = :id",
-            ).setParameter("future", java.sql.Timestamp.from(Instant.now().plusSeconds(3600)))
-                .setParameter("id", n.id)
-                .executeUpdate()
-            em.flush()
-            em.clear()
-
-            val result = notifications.findDispatchable(Instant.now(), PageRequest.of(0, 10))
+            val result = notifications.findRetriableDispatchable(Instant.now(), PageRequest.of(0, 10))
             assertTrue(result.none { it.id == n.id })
         }
 
