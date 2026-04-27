@@ -31,6 +31,10 @@ import java.time.temporal.ChronoUnit
             name = "ix_notification_status_scheduled",
             columnList = "status, scheduled_at",
         ),
+        Index(
+            name = "ix_notification_status_retry",
+            columnList = "status, next_retry_at",
+        ),
     ],
 )
 class Notification(
@@ -60,6 +64,17 @@ class Notification(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     var status: NotificationStatus = NotificationStatus.PENDING
+        protected set
+
+    @Column(name = "auto_attempt_count", nullable = false)
+    var autoAttemptCount: Int = 0
+        protected set
+
+    @Column(name = "max_auto_attempts", nullable = false)
+    val maxAutoAttempts: Int = DEFAULT_MAX_AUTO_ATTEMPTS
+
+    @Column(name = "next_retry_at")
+    var nextRetryAt: Instant? = null
         protected set
 
     @Column(name = "last_error", length = 500)
@@ -97,13 +112,24 @@ class Notification(
         reason: String,
         now: Instant = Instant.now(),
     ) {
-        status = NotificationStatus.FAILED
-        processedAt = now
+        autoAttemptCount++
         lastError = reason.take(MAX_ERROR_LENGTH)
+        processedAt = now
         updatedAt = now
+
+        if (autoAttemptCount >= maxAutoAttempts) {
+            status = NotificationStatus.DEAD_LETTER
+            nextRetryAt = null
+        } else {
+            status = NotificationStatus.FAILED
+            val index = (autoAttemptCount - 1).coerceAtMost(BACKOFF_MINUTES.size - 1)
+            nextRetryAt = now.plus(BACKOFF_MINUTES[index], ChronoUnit.MINUTES)
+        }
     }
 
     companion object {
         private const val MAX_ERROR_LENGTH = 500
+        const val DEFAULT_MAX_AUTO_ATTEMPTS = 5
+        val BACKOFF_MINUTES = listOf(1L, 5L, 30L, 120L, 360L)
     }
 }

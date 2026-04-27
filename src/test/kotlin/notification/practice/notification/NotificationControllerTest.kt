@@ -130,27 +130,19 @@ class NotificationControllerTest
         }
 
         @Test
-        fun `GET me notifications - X-User-Id 헤더가 없으면 400 과 MISSING_HEADER 코드를 돌려준다`() {
+        fun `GET users userId notifications - userId 가 숫자가 아니면 400 과 INVALID_PARAMETER 를 돌려준다`() {
             mockMvc
-                .perform(get("/api/v1/me/notifications"))
-                .andExpect(status().isBadRequest)
-                .andExpect(jsonPath("$.code").value("MISSING_HEADER"))
-        }
-
-        @Test
-        fun `GET me notifications - X-User-Id 헤더가 숫자가 아니면 400 과 INVALID_PARAMETER 를 돌려준다`() {
-            mockMvc
-                .perform(get("/api/v1/me/notifications").header("X-User-Id", "abc"))
+                .perform(get("/api/v1/users/abc/notifications"))
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
         }
 
         @Test
-        fun `GET me notifications - 헤더와 read 파라미터를 서비스에 위임한다`() {
+        fun `GET users userId notifications - userId 와 read 파라미터를 서비스에 위임한다`() {
             whenever(notificationService.listInbox(7L, false)).thenReturn(listOf(sampleResponse()))
 
             mockMvc
-                .perform(get("/api/v1/me/notifications?read=false").header("X-User-Id", "7"))
+                .perform(get("/api/v1/users/7/notifications?read=false"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.length()").value(1))
         }
@@ -164,6 +156,8 @@ class NotificationControllerTest
                 refType = "COURSE",
                 refId = "c-100",
                 status = NotificationStatus.SENT,
+                autoAttemptCount = 0,
+                nextRetryAt = null,
                 readAt = null,
                 processedAt = Instant.now(),
                 lastError = null,

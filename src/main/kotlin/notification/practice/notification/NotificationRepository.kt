@@ -11,8 +11,9 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
 
     @Query(
         """SELECT n FROM Notification n
-           WHERE n.status = 'PENDING' AND n.scheduledAt <= :now
-           ORDER BY n.scheduledAt ASC, n.id ASC""",
+           WHERE (n.status = 'PENDING' AND n.scheduledAt <= :now)
+              OR (n.status = 'FAILED' AND n.nextRetryAt <= :now)
+           ORDER BY n.id ASC""",
     )
     fun findDispatchable(
         @Param("now") now: Instant,

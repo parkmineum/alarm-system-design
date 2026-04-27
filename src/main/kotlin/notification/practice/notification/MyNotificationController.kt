@@ -10,14 +10,14 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import notification.practice.common.error.ApiError
 import notification.practice.notification.dto.NotificationResponse
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestHeader
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-@Tag(name = "수신함", description = "내 알림 목록 조회")
+@Tag(name = "수신함", description = "사용자 알림 목록 조회")
 @RestController
-@RequestMapping("/api/v1/me/notifications")
+@RequestMapping("/api/v1/users/{userId}/notifications")
 class MyNotificationController(
     private val notificationService: NotificationService,
 ) {
@@ -26,14 +26,14 @@ class MyNotificationController(
         ApiResponse(responseCode = "200", description = "조회 성공"),
         ApiResponse(
             responseCode = "400",
-            description = "X-User-Id 헤더 누락",
+            description = "userId 형식 오류",
             content = [Content(schema = Schema(implementation = ApiError::class))],
         ),
     )
     @GetMapping
     fun list(
-        @Parameter(description = "요청자 사용자 ID", required = true)
-        @RequestHeader("X-User-Id") userId: Long,
+        @Parameter(description = "사용자 ID", required = true)
+        @PathVariable userId: Long,
         @Parameter(description = "읽음 여부 필터. true=읽음만, false=미읽음만, 생략=전체")
         @RequestParam(name = "read", required = false) read: Boolean?,
     ): List<NotificationResponse> = notificationService.listInbox(userId, read)
