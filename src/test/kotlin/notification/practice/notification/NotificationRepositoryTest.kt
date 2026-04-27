@@ -71,13 +71,18 @@ class NotificationRepositoryTest
         @Test
         fun `findPendingDispatchable 은 scheduledAt 이 과거인 PENDING 만 반환한다`() {
             val past = notifications.saveAndFlush(notification(idempotencyKey = "pending-past"))
-            val future = notifications.saveAndFlush(
-                Notification(
-                    recipientId = 1L, type = "T", channel = NotificationChannel.EMAIL,
-                    refType = "R", refId = "r", idempotencyKey = "pending-future",
-                    scheduledAt = Instant.now().plusSeconds(3600),
-                ),
-            )
+            val future =
+                notifications.saveAndFlush(
+                    Notification(
+                        recipientId = 1L,
+                        type = "T",
+                        channel = NotificationChannel.EMAIL,
+                        refType = "R",
+                        refId = "r",
+                        idempotencyKey = "pending-future",
+                        scheduledAt = Instant.now().plusSeconds(3600),
+                    ),
+                )
 
             val result = notifications.findPendingDispatchable(Instant.now(), PageRequest.of(0, 10))
             assertTrue(result.any { it.id == past.id })

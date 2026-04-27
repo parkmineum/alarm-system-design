@@ -51,7 +51,7 @@ class NotificationTest {
     fun `backoff 간격이 순서대로 증가한다`() {
         val delays = Notification.BACKOFF_SECONDS
         for (i in 0 until delays.size - 1) {
-            assertTrue(delays[i] < delays[i + 1], "delays[$i]=${delays[i]} >= delays[${i+1}]=${delays[i+1]}")
+            assertTrue(delays[i] < delays[i + 1], "delays[$i]=${delays[i]} >= delays[${i + 1}]=${delays[i + 1]}")
         }
     }
 
