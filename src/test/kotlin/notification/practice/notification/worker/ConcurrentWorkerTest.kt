@@ -1,5 +1,7 @@
-package notification.practice.notification
+package notification.practice.notification.worker
 
+import notification.practice.notification.NotificationChannel
+import notification.practice.notification.NotificationService
 import notification.practice.notification.dto.RegisterNotificationRequest
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry

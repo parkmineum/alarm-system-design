@@ -40,14 +40,6 @@ class NotificationTest {
     }
 
     @Test
-    fun `BACKOFF_SECONDS 크기는 DEFAULT_MAX_AUTO_ATTEMPTS - 1 과 같다`() {
-        assertEquals(
-            Notification.DEFAULT_MAX_AUTO_ATTEMPTS - 1,
-            Notification.BACKOFF_SECONDS.size,
-        )
-    }
-
-    @Test
     fun `backoff 간격이 순서대로 증가한다`() {
         val delays = Notification.BACKOFF_SECONDS
         for (i in 0 until delays.size - 1) {

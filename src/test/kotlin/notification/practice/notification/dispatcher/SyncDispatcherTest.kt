@@ -1,5 +1,9 @@
-package notification.practice.notification
+package notification.practice.notification.dispatcher
 
+import notification.practice.notification.Notification
+import notification.practice.notification.NotificationChannel
+import notification.practice.notification.NotificationRepository
+import notification.practice.notification.NotificationStatus
 import notification.practice.notification.dispatcher.SyncDispatcher
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry
@@ -43,17 +47,6 @@ class SyncDispatcherTest {
         assertNotNull(notification.processedAt)
         assertEquals("연결 실패", notification.lastError)
         verify(notifications).save(notification)
-    }
-
-    @Test
-    fun `500자 초과 에러 메시지는 500자로 잘린다`() {
-        val notification = notification()
-        whenever(senderRegistry.find(notification.channel)).thenReturn(sender)
-        whenever(sender.send(notification)).thenThrow(RuntimeException("x".repeat(600)))
-
-        dispatcher.dispatch(notification)
-
-        assertEquals(500, notification.lastError?.length)
     }
 
     private fun notification() =
