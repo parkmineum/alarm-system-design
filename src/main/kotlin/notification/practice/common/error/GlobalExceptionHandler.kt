@@ -1,6 +1,8 @@
 package notification.practice.common.error
 
+import notification.practice.notification.ManualRetryLimitExceededException
 import notification.practice.notification.NotificationIdempotencyConflictException
+import notification.practice.notification.NotificationNotDeadLetterException
 import notification.practice.notification.NotificationNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -52,4 +54,14 @@ class GlobalExceptionHandler {
             code = "MISSING_HEADER",
             message = "필수 헤더가 없습니다: ${e.headerName}",
         )
+
+    @ExceptionHandler(NotificationNotDeadLetterException::class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    fun notDeadLetter(e: NotificationNotDeadLetterException): ApiError =
+        ApiError(code = "NOT_DEAD_LETTER", message = e.message ?: "")
+
+    @ExceptionHandler(ManualRetryLimitExceededException::class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    fun manualRetryLimitExceeded(e: ManualRetryLimitExceededException): ApiError =
+        ApiError(code = "MANUAL_RETRY_LIMIT_EXCEEDED", message = e.message ?: "")
 }

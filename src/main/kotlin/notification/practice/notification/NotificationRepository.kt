@@ -43,4 +43,7 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
     fun findByRecipientIdAndReadAtIsNotNullOrderByCreatedAtDesc(
         @Param("recipientId") recipientId: Long,
     ): List<Notification>
+
+    @Query("SELECT n FROM Notification n WHERE n.status = 'DEAD_LETTER' ORDER BY n.createdAt DESC, n.id DESC")
+    fun findDeadLetters(): List<Notification>
 }
