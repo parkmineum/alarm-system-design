@@ -60,6 +60,7 @@ class NotificationControllerTest
                 .andExpect(jsonPath("$.channel").value(response.channel.name))
                 .andExpect(jsonPath("$.refType").value(response.refType))
                 .andExpect(jsonPath("$.refId").value(response.refId))
+                .andExpect(jsonPath("$.scheduledAt").isString)
                 .andExpect(jsonPath("$.status").value(response.status.name))
         }
 
@@ -167,6 +168,65 @@ class NotificationControllerTest
                 .andExpect(jsonPath("$.length()").value(2))
         }
 
+        @Test
+        fun `PATCH notifications id read - 정상 읽음 처리는 200 과 응답 바디를 돌려준다`() {
+            val response = sampleResponse()
+            whenever(notificationService.markRead(1L, 1L)).thenReturn(response)
+
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/v1/notifications/1/read")
+                        .header("X-User-Id", "1"),
+                )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.id").value(response.id))
+        }
+
+        @Test
+        fun `PATCH notifications id read - 미존재 id 는 404 를 돌려준다`() {
+            whenever(notificationService.markRead(999L, 1L)).thenThrow(NotificationNotFoundException(999L))
+
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/v1/notifications/999/read")
+                        .header("X-User-Id", "1"),
+                )
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
+        }
+
+        @Test
+        fun `POST notifications - scheduledAt 이 과거 시각이면 400 을 돌려준다`() {
+            val body = """{"recipientId":1,"type":"T","channel":"EMAIL","refType":"R","refId":"1","scheduledAt":"2000-01-01T00:00:00Z"}"""
+
+            mockMvc
+                .perform(
+                    post("/api/v1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details.scheduledAt").exists())
+        }
+
+        @Test
+        fun `POST notifications - scheduledAt 이 1초 전이어도 400 을 돌려준다`() {
+            val nearPast = Instant.now().minusSeconds(1).toString()
+            val body = """{"recipientId":1,"type":"T","channel":"EMAIL","refType":"R","refId":"1","scheduledAt":"$nearPast"}"""
+
+            mockMvc
+                .perform(
+                    post("/api/v1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+        }
+
         private fun sampleResponse(): NotificationResponse =
             NotificationResponse(
                 id = 1L,
@@ -175,6 +235,7 @@ class NotificationControllerTest
                 channel = NotificationChannel.EMAIL,
                 refType = "COURSE",
                 refId = "c-100",
+                scheduledAt = Instant.now(),
                 status = NotificationStatus.SENT,
                 autoAttemptCount = 0,
                 nextRetryAt = null,

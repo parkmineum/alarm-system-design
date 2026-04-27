@@ -14,6 +14,7 @@ import notification.practice.notification.dto.NotificationResponse
 import notification.practice.notification.dto.RegisterNotificationRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -74,4 +75,20 @@ class NotificationController(
         @Parameter(description = "요청자 사용자 ID", required = true)
         @RequestHeader("X-User-Id") userId: Long,
     ): NotificationResponse = notificationService.get(id, userId)
+
+    @Operation(summary = "알림 읽음 처리", description = "최초 읽은 시각만 기록된다. 이미 읽은 알림을 다시 호출해도 readAt 이 변경되지 않는다.")
+    @ApiResponses(
+        ApiResponse(responseCode = "200", description = "처리 성공"),
+        ApiResponse(
+            responseCode = "404",
+            description = "알림 없음 또는 다른 사용자 알림",
+            content = [Content(schema = Schema(implementation = ApiError::class))],
+        ),
+    )
+    @PatchMapping("/{id}/read")
+    fun markRead(
+        @PathVariable id: Long,
+        @Parameter(description = "요청자 사용자 ID", required = true)
+        @RequestHeader("X-User-Id") userId: Long,
+    ): NotificationResponse = notificationService.markRead(id, userId)
 }
