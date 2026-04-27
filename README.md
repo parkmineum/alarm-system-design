@@ -1,8 +1,8 @@
 # 알림 발송 시스템
 
-DB 기반 outbox + 폴링 워커 구조. 메시지 큐 (Kafka, RabbitMQ 등) 로 점진 전환 가능하도록 추상화.
-
-추가 문서: [비동기 처리 구조 + 재시도 정책](docs/async-and-retry.md) · [요구사항 해석 + 개선 의견](docs/interpretation.md)
+주요 문서 :
+- [비동기 처리 구조 + 재시도 정책](docs/async-and-retry.md)
+- [요구사항 해석 + 개선 의견](docs/interpretation.md)
 
 ---
 
