@@ -1,6 +1,6 @@
 package notification.practice.notification.sender
 
-import notification.practice.notification.NotificationChannel
+import notification.practice.notification.domain.NotificationChannel
 import org.springframework.stereotype.Component
 
 @Component

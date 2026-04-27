@@ -1,9 +1,9 @@
 package notification.practice.notification.worker
 
-import notification.practice.notification.Notification
-import notification.practice.notification.NotificationRepository
+import notification.practice.notification.domain.Notification
+import notification.practice.notification.repository.NotificationRepository
 import notification.practice.notification.sender.NotificationSenderRegistry
-import notification.practice.notification.template.NotificationTemplateService
+import notification.practice.notification.template.service.NotificationTemplateService
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation

@@ -1,7 +1,7 @@
 package notification.practice.notification.dispatcher
 
-import notification.practice.notification.Notification
-import notification.practice.notification.NotificationRepository
+import notification.practice.notification.domain.Notification
+import notification.practice.notification.repository.NotificationRepository
 import notification.practice.notification.sender.NotificationSenderRegistry
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Propagation

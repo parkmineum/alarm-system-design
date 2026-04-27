@@ -1,6 +1,6 @@
 package notification.practice.notification.dispatcher
 
-import notification.practice.notification.Notification
+import notification.practice.notification.domain.Notification
 import org.springframework.stereotype.Component
 
 @Component

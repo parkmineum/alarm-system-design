@@ -1,9 +1,9 @@
 package notification.practice.common.error
 
-import notification.practice.notification.ManualRetryLimitExceededException
-import notification.practice.notification.NotificationIdempotencyConflictException
-import notification.practice.notification.NotificationNotDeadLetterException
-import notification.practice.notification.NotificationNotFoundException
+import notification.practice.notification.exception.ManualRetryLimitExceededException
+import notification.practice.notification.exception.NotificationIdempotencyConflictException
+import notification.practice.notification.exception.NotificationNotDeadLetterException
+import notification.practice.notification.exception.NotificationNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException

@@ -1,7 +1,7 @@
 package notification.practice.notification.worker
 
-import notification.practice.notification.Notification
-import notification.practice.notification.NotificationRepository
+import notification.practice.notification.domain.Notification
+import notification.practice.notification.repository.NotificationRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

@@ -1,10 +1,10 @@
 package notification.practice.notification.worker
 
-import notification.practice.notification.NotificationChannel
-import notification.practice.notification.NotificationService
-import notification.practice.notification.dto.RegisterNotificationRequest
+import notification.practice.notification.controller.dto.RegisterNotificationRequest
+import notification.practice.notification.domain.NotificationChannel
 import notification.practice.notification.sender.NotificationSender
 import notification.practice.notification.sender.NotificationSenderRegistry
+import notification.practice.notification.service.NotificationService
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer

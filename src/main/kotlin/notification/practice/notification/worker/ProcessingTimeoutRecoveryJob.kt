@@ -1,6 +1,6 @@
 package notification.practice.notification.worker
 
-import notification.practice.notification.NotificationRepository
+import notification.practice.notification.repository.NotificationRepository
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
