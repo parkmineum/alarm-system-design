@@ -57,8 +57,7 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(NotificationNotDeadLetterException::class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    fun notDeadLetter(e: NotificationNotDeadLetterException): ApiError =
-        ApiError(code = "NOT_DEAD_LETTER", message = e.message ?: "")
+    fun notDeadLetter(e: NotificationNotDeadLetterException): ApiError = ApiError(code = "NOT_DEAD_LETTER", message = e.message ?: "")
 
     @ExceptionHandler(ManualRetryLimitExceededException::class)
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -67,6 +66,5 @@ class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException::class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    fun illegalArgument(e: IllegalArgumentException): ApiError =
-        ApiError(code = "INVALID_REQUEST", message = e.message ?: "잘못된 요청입니다")
+    fun illegalArgument(e: IllegalArgumentException): ApiError = ApiError(code = "INVALID_REQUEST", message = e.message ?: "잘못된 요청입니다")
 }
