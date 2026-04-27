@@ -1,6 +1,7 @@
 package notification.practice.notification
 
 import java.security.MessageDigest
+import java.time.Instant
 
 object IdempotencyKey {
     fun derive(
@@ -9,8 +10,13 @@ object IdempotencyKey {
         refId: String,
         recipientId: Long,
         channel: NotificationChannel,
+        scheduledAt: Instant? = null,
     ): String {
-        val raw = "$type|$refType|$refId|$recipientId|$channel"
+        val raw =
+            buildString {
+                append("$type|$refType|$refId|$recipientId|$channel")
+                if (scheduledAt != null) append("|${scheduledAt.toEpochMilli()}")
+            }
         return MessageDigest.getInstance("SHA-256")
             .digest(raw.toByteArray())
             .joinToString("") { "%02x".format(it) }

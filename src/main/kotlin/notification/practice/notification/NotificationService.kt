@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Service
 class NotificationService(
@@ -18,6 +19,11 @@ class NotificationService(
         val channel = requireNotNull(request.channel)
         val refType = requireNotNull(request.refType)
         val refId = requireNotNull(request.refId)
+        val scheduledAt = request.scheduledAt?.truncatedTo(ChronoUnit.MILLIS)
+
+        require(scheduledAt == null || scheduledAt.isAfter(Instant.now())) {
+            "scheduledAt 은 미래 시각이어야 합니다"
+        }
 
         val key =
             IdempotencyKey.derive(
@@ -26,6 +32,7 @@ class NotificationService(
                 refId = refId,
                 recipientId = recipientId,
                 channel = channel,
+                scheduledAt = scheduledAt,
             )
 
         notifications.findByIdempotencyKey(key)?.let { existing ->
@@ -44,12 +51,16 @@ class NotificationService(
                         refId = refId,
                         payload = request.payload,
                         idempotencyKey = key,
+                        scheduledAt = scheduledAt ?: Instant.now().truncatedTo(ChronoUnit.MILLIS),
                     ),
                 )
             } catch (e: DataIntegrityViolationException) {
                 if (!isUniqueViolation(e)) throw e
-                notifications.findByIdempotencyKey(key)
-                    ?: throw IllegalStateException("멱등성 충돌 후 row 조회 실패", e)
+                val existing =
+                    notifications.findByIdempotencyKey(key)
+                        ?: throw IllegalStateException("멱등성 충돌 후 row 조회 실패", e)
+                if (existing.payload != request.payload) throw NotificationIdempotencyConflictException(key)
+                existing
             }
 
         return NotificationResponse.from(saved)
