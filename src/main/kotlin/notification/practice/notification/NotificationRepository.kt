@@ -10,9 +10,16 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.jpa.repository.QueryHints
 import org.springframework.data.repository.query.Param
 import java.time.Instant
+import java.util.Optional
 
 interface NotificationRepository : JpaRepository<Notification, Long> {
     fun findByIdempotencyKey(idempotencyKey: String): Notification?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM Notification n WHERE n.id = :id")
+    fun findByIdForUpdate(
+        @Param("id") id: Long,
+    ): Optional<Notification>
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @QueryHints(QueryHint(name = "jakarta.persistence.lock.timeout", value = "-2"))
@@ -69,4 +76,7 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
     fun findByRecipientIdAndReadAtIsNotNullOrderByCreatedAtDesc(
         @Param("recipientId") recipientId: Long,
     ): List<Notification>
+
+    @Query("SELECT n FROM Notification n WHERE n.status = 'DEAD_LETTER' ORDER BY n.createdAt DESC, n.id DESC")
+    fun findDeadLetters(pageable: Pageable): List<Notification>
 }

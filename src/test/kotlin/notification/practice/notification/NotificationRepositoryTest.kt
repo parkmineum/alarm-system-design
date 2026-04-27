@@ -128,6 +128,50 @@ class NotificationRepositoryTest
         }
 
         @Test
+        fun `findDeadLetters 는 DEAD_LETTER 상태 알림만 반환한다`() {
+            val dl = notifications.saveAndFlush(notification(idempotencyKey = "dl-1"))
+            val pending = notifications.saveAndFlush(notification(idempotencyKey = "dl-pending"))
+            em.createNativeQuery("UPDATE notification SET status = 'DEAD_LETTER' WHERE id = :id")
+                .setParameter("id", dl.id)
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findDeadLetters(PageRequest.of(0, 10))
+            assertTrue(result.any { it.id == dl.id })
+            assertTrue(result.none { it.id == pending.id })
+            assertTrue(result.all { it.status == NotificationStatus.DEAD_LETTER })
+        }
+
+        @Test
+        fun `findDeadLetters 는 createdAt DESC, id DESC 순으로 반환한다`() {
+            val first = notifications.saveAndFlush(notification(idempotencyKey = "dl-order-1"))
+            val second = notifications.saveAndFlush(notification(idempotencyKey = "dl-order-2"))
+            em.createNativeQuery("UPDATE notification SET status = 'DEAD_LETTER' WHERE id IN (:id1, :id2)")
+                .setParameter("id1", first.id)
+                .setParameter("id2", second.id)
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findDeadLetters(PageRequest.of(0, 10))
+            val ids = result.filter { it.id == first.id || it.id == second.id }.map { it.id }
+            assertEquals(listOf(second.id, first.id), ids)
+        }
+
+        @Test
+        fun `findDeadLetters 는 size 만큼만 반환한다`() {
+            repeat(5) { i -> notifications.saveAndFlush(notification(idempotencyKey = "dl-page-$i")) }
+            em.createNativeQuery("UPDATE notification SET status = 'DEAD_LETTER'")
+                .executeUpdate()
+            em.flush()
+            em.clear()
+
+            val result = notifications.findDeadLetters(PageRequest.of(0, 2))
+            assertEquals(2, result.size)
+        }
+
+        @Test
         fun `markReadIfUnread 는 readAt 이 null 일 때 1 을 반환하고 readAt 을 설정한다`() {
             val n = notifications.saveAndFlush(notification(idempotencyKey = "mark-read-1"))
             val id = requireNotNull(n.id)

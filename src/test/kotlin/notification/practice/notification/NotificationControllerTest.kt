@@ -242,6 +242,8 @@ class NotificationControllerTest
                 readAt = null,
                 processedAt = Instant.now(),
                 lastError = null,
+                manualRetryCount = 0,
+                lastManualRetryAt = null,
                 createdAt = Instant.now(),
             )
     }

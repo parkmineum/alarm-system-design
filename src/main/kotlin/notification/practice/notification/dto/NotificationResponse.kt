@@ -19,6 +19,8 @@ data class NotificationResponse(
     val readAt: Instant?,
     val processedAt: Instant?,
     val lastError: String?,
+    val manualRetryCount: Int,
+    val lastManualRetryAt: Instant?,
     val createdAt: Instant,
 ) {
     companion object {
@@ -37,6 +39,8 @@ data class NotificationResponse(
                 readAt = notification.readAt,
                 processedAt = notification.processedAt,
                 lastError = notification.lastError,
+                manualRetryCount = notification.manualRetryCount,
+                lastManualRetryAt = notification.lastManualRetryAt,
                 createdAt = notification.createdAt,
             )
     }

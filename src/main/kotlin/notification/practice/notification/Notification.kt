@@ -86,6 +86,18 @@ class Notification(
     var processedAt: Instant? = null
         protected set
 
+    @Column(name = "manual_retry_count", nullable = false)
+    var manualRetryCount: Int = 0
+        protected set
+
+    @Column(name = "last_manual_retry_at")
+    var lastManualRetryAt: Instant? = null
+        protected set
+
+    @Column(name = "last_manual_retry_actor_id", length = 64)
+    var lastManualRetryActorId: String? = null
+        protected set
+
     @Column(name = "created_at", nullable = false, updatable = false)
     val createdAt: Instant = Instant.now()
 
@@ -123,9 +135,26 @@ class Notification(
         }
     }
 
+    // autoAttemptCount 를 0 으로 리셋하므로 수동 재시도 1회당 자동 시도 최대 DEFAULT_MAX_AUTO_ATTEMPTS 회가 새로 소비된다.
+    // 최악의 경우 총 자동 시도 수 = DEFAULT_MAX_MANUAL_RETRIES × DEFAULT_MAX_AUTO_ATTEMPTS.
+    fun requeue(
+        actorId: String,
+        now: Instant = Instant.now(),
+    ) {
+        status = NotificationStatus.PENDING
+        autoAttemptCount = 0
+        nextRetryAt = null
+        lastError = null
+        manualRetryCount++
+        lastManualRetryAt = now
+        lastManualRetryActorId = actorId
+        updatedAt = now
+    }
+
     companion object {
         private const val MAX_ERROR_LENGTH = 500
         const val DEFAULT_MAX_AUTO_ATTEMPTS = 5
+        const val DEFAULT_MAX_MANUAL_RETRIES = 3
 
         // 30초 → 2분 → 10분 → 30분 (4회 재시도, 5회째 DEAD_LETTER)
         val BACKOFF_SECONDS = listOf(30L, 120L, 600L, 1800L)
