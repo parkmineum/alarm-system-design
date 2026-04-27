@@ -11,11 +11,20 @@ interface NotificationRepository : JpaRepository<Notification, Long> {
 
     @Query(
         """SELECT n FROM Notification n
-           WHERE (n.status = 'PENDING' AND n.scheduledAt <= :now)
-              OR (n.status = 'FAILED' AND n.nextRetryAt <= :now)
-           ORDER BY n.id ASC""",
+           WHERE n.status = 'PENDING' AND n.scheduledAt <= :now
+           ORDER BY n.scheduledAt ASC, n.id ASC""",
     )
-    fun findDispatchable(
+    fun findPendingDispatchable(
+        @Param("now") now: Instant,
+        pageable: Pageable,
+    ): List<Notification>
+
+    @Query(
+        """SELECT n FROM Notification n
+           WHERE n.status = 'FAILED' AND n.nextRetryAt <= :now
+           ORDER BY n.nextRetryAt ASC, n.id ASC""",
+    )
+    fun findRetriableDispatchable(
         @Param("now") now: Instant,
         pageable: Pageable,
     ): List<Notification>

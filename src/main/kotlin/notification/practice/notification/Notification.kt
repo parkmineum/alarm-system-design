@@ -70,9 +70,6 @@ class Notification(
     var autoAttemptCount: Int = 0
         protected set
 
-    @Column(name = "max_auto_attempts", nullable = false)
-    val maxAutoAttempts: Int = DEFAULT_MAX_AUTO_ATTEMPTS
-
     @Column(name = "next_retry_at")
     var nextRetryAt: Instant? = null
         protected set
@@ -117,19 +114,26 @@ class Notification(
         processedAt = now
         updatedAt = now
 
-        if (autoAttemptCount >= maxAutoAttempts) {
+        if (autoAttemptCount >= DEFAULT_MAX_AUTO_ATTEMPTS) {
             status = NotificationStatus.DEAD_LETTER
             nextRetryAt = null
         } else {
             status = NotificationStatus.FAILED
-            val index = (autoAttemptCount - 1).coerceAtMost(BACKOFF_MINUTES.size - 1)
-            nextRetryAt = now.plus(BACKOFF_MINUTES[index], ChronoUnit.MINUTES)
+            nextRetryAt = now.plusSeconds(BACKOFF_SECONDS[autoAttemptCount - 1])
         }
     }
 
     companion object {
         private const val MAX_ERROR_LENGTH = 500
         const val DEFAULT_MAX_AUTO_ATTEMPTS = 5
-        val BACKOFF_MINUTES = listOf(1L, 5L, 30L, 120L, 360L)
+
+        // 30초 → 2분 → 10분 → 30분 (4회 재시도, 5회째 DEAD_LETTER)
+        val BACKOFF_SECONDS = listOf(30L, 120L, 600L, 1800L)
+
+        init {
+            require(BACKOFF_SECONDS.size == DEFAULT_MAX_AUTO_ATTEMPTS - 1) {
+                "BACKOFF_SECONDS.size(${BACKOFF_SECONDS.size}) != DEFAULT_MAX_AUTO_ATTEMPTS-1(${DEFAULT_MAX_AUTO_ATTEMPTS - 1})"
+            }
+        }
     }
 }

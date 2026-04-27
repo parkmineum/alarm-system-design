@@ -138,13 +138,33 @@ class NotificationControllerTest
         }
 
         @Test
-        fun `GET users userId notifications - userId 와 read 파라미터를 서비스에 위임한다`() {
+        fun `GET users userId notifications - read=false 이면 서비스에 false 를 전달한다`() {
             whenever(notificationService.listInbox(7L, false)).thenReturn(listOf(sampleResponse()))
 
             mockMvc
                 .perform(get("/api/v1/users/7/notifications?read=false"))
                 .andExpect(status().isOk)
                 .andExpect(jsonPath("$.length()").value(1))
+        }
+
+        @Test
+        fun `GET users userId notifications - read=true 이면 서비스에 true 를 전달한다`() {
+            whenever(notificationService.listInbox(7L, true)).thenReturn(listOf(sampleResponse()))
+
+            mockMvc
+                .perform(get("/api/v1/users/7/notifications?read=true"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.length()").value(1))
+        }
+
+        @Test
+        fun `GET users userId notifications - read 파라미터 생략 시 서비스에 null 을 전달한다`() {
+            whenever(notificationService.listInbox(7L, null)).thenReturn(listOf(sampleResponse(), sampleResponse()))
+
+            mockMvc
+                .perform(get("/api/v1/users/7/notifications"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.length()").value(2))
         }
 
         private fun sampleResponse(): NotificationResponse =
