@@ -1,6 +1,6 @@
 # 알림 발송 시스템
 
-주요 문서 :
+## 주요 문서
 - [비동기 처리 구조 + 재시도 정책](docs/async-and-retry.md)
 - [요구사항 해석 + 개선 의견](docs/interpretation.md)
 
