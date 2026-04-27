@@ -4,8 +4,8 @@
 
 ## 참조 문서
 
-- 설계 결정: [docs/design-guideline.md](docs/design-guideline.md) — 작업 전 먼저 읽는다
-- Git 컨벤션: [docs/git-conventions.md](docs/git-conventions.md) — 브랜치·커밋·PR 규칙
+- 설계 결정: [.claude/docs/design-guideline.md](.claude/docs/design-guideline.md) — 작업 전 먼저 읽는다
+- Git 컨벤션: [.claude/docs/git-conventions.md](.claude/docs/git-conventions.md) — 브랜치·커밋·PR 규칙
 
 ## 기술 스택
 
