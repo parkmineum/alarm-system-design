@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest
 import java.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @DataJpaTest
@@ -124,6 +125,39 @@ class NotificationRepositoryTest
 
             val result = notifications.findRetriableDispatchable(Instant.now(), PageRequest.of(0, 10))
             assertTrue(result.none { it.id == n.id })
+        }
+
+        @Test
+        fun `markReadIfUnread 는 readAt 이 null 일 때 1 을 반환하고 readAt 을 설정한다`() {
+            val n = notifications.saveAndFlush(notification(idempotencyKey = "mark-read-1"))
+            val id = requireNotNull(n.id)
+            val now = Instant.now()
+
+            val updated = notifications.markReadIfUnread(id, now)
+            em.flush()
+            em.clear()
+
+            assertEquals(1, updated)
+            val stored = notifications.findById(id).orElseThrow()
+            assertNotNull(stored.readAt)
+        }
+
+        @Test
+        fun `markReadIfUnread 는 이미 readAt 이 설정된 경우 0 을 반환하고 기존 readAt 을 변경하지 않는다`() {
+            val n = notifications.saveAndFlush(notification(idempotencyKey = "mark-read-2"))
+            val id = requireNotNull(n.id)
+            val first = Instant.now().minusSeconds(60)
+            notifications.markReadIfUnread(id, first)
+            em.flush()
+            em.clear()
+
+            val updated = notifications.markReadIfUnread(id, Instant.now())
+            em.flush()
+            em.clear()
+
+            assertEquals(0, updated)
+            val stored = notifications.findById(id).orElseThrow()
+            assertEquals(first.epochSecond, stored.readAt!!.epochSecond)
         }
 
         private fun notification(

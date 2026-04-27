@@ -167,6 +167,35 @@ class NotificationControllerTest
                 .andExpect(jsonPath("$.length()").value(2))
         }
 
+        @Test
+        fun `PATCH notifications id read - 정상 읽음 처리는 200 과 응답 바디를 돌려준다`() {
+            val response = sampleResponse()
+            whenever(notificationService.markRead(1L, 1L)).thenReturn(response)
+
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/v1/notifications/1/read")
+                        .header("X-User-Id", "1"),
+                )
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.id").value(response.id))
+        }
+
+        @Test
+        fun `PATCH notifications id read - 미존재 id 는 404 를 돌려준다`() {
+            whenever(notificationService.markRead(999L, 1L)).thenThrow(NotificationNotFoundException(999L))
+
+            mockMvc
+                .perform(
+                    org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/v1/notifications/999/read")
+                        .header("X-User-Id", "1"),
+                )
+                .andExpect(status().isNotFound)
+                .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
+        }
+
         private fun sampleResponse(): NotificationResponse =
             NotificationResponse(
                 id = 1L,
