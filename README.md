@@ -3,8 +3,12 @@
 수강 신청 / 결제 확정 / 강의 시작 D-1 / 취소 등 도메인 이벤트가 발생할 때 EMAIL · IN_APP 알림을 비동기로 발송한다.
 브로커 없이 DB 기반 outbox + 폴링 워커로 구현했고, 운영 환경에서 Kafka 등으로 점진 전환 가능한 형태로 추상화했다.
 
-- 기술 스택: Kotlin 1.9 / Java 17 / Spring Boot 3.5 / Spring Data JPA / MySQL 8 (운영) · H2 (테스트)
-- 테스트: 93건, 모두 통과 — `./gradlew test`
+테스트 93건 모두 통과 — `./gradlew test`
+
+추가 문서:
+
+- 비동기 처리 구조 + 재시도 정책 → [docs/async-and-retry.md](docs/async-and-retry.md)
+- 요구사항 해석 + 개선 의견 → [docs/interpretation.md](docs/interpretation.md)
 
 ---
 
@@ -206,22 +210,10 @@ PENDING ──claim──▶ PROCESSING ──send 성공──▶ SENT         
                         │                                          ↓
                         │                                       PENDING (autoAttemptCount=0)
                         │
-                        └──updated_at > 5분 (좀비)─────▶ PENDING (Recovery Job)
+                        └──updated_at > 5분 (타임아웃)──▶ PENDING (Recovery Job)
 ```
 
 </details>
-
----
-
-## 기술 스택
-
-- **언어**: Kotlin 1.9.25 / Java 17
-- **프레임워크**: Spring Boot 3.5.14, Spring Data JPA, Spring Web, Spring Validation, springdoc-openapi
-- **DB**: MySQL 8.0 (운영) / H2 (테스트)
-- **빌드**: Gradle Kotlin DSL
-- **린트**: ktlint (pre-push 훅에서 검증)
-
-JPA 엔티티는 `kotlin-allopen` 으로 자동 open. 타임스탬프는 `Instant` 로 보관, 표시 시점에만 KST 변환.
 
 ---
 
@@ -252,7 +244,7 @@ docker compose up -d mysql   # MySQL 만 기동
 |---|---|---|
 | Repository | `@DataJpaTest` | JPA 쿼리, UNIQUE 제약, 인덱스 의존 정렬 |
 | Web | `@WebMvcTest` | 컨트롤러 라우팅, 검증, 에러 응답 형식 |
-| 통합 (워커 포함) | `@SpringBootTest` | 트랜잭션 경계, 워커 폴링, 좀비 복구, 다중 워커 동시성 |
+| 통합 (워커 포함) | `@SpringBootTest` | 트랜잭션 경계, 워커 폴링, 처리 타임아웃 복구, 다중 워커 동시성 |
 
 핵심 시나리오:
 
@@ -261,7 +253,7 @@ docker compose up -d mysql   # MySQL 만 기동
 | 멱등성 — 같은 키 N회 호출 → row 1건 | [`IdempotencyKeyTest`](src/test/kotlin/notification/practice/notification/IdempotencyKeyTest.kt) |
 | 다중 워커 동시 polling → 중복 발송 0건 | [`worker/ConcurrentWorkerTest`](src/test/kotlin/notification/practice/notification/worker/ConcurrentWorkerTest.kt) |
 | 자동 재시도 + DEAD_LETTER 전이 | [`NotificationRetryTest`](src/test/kotlin/notification/practice/notification/NotificationRetryTest.kt) |
-| 좀비 복구 (`PROCESSING` 5분 초과) | [`worker/ProcessingTimeoutRecoveryTest`](src/test/kotlin/notification/practice/notification/worker/ProcessingTimeoutRecoveryTest.kt) |
+| 처리 타임아웃 복구 (`PROCESSING` 5분 초과) | [`worker/ProcessingTimeoutRecoveryTest`](src/test/kotlin/notification/practice/notification/worker/ProcessingTimeoutRecoveryTest.kt) |
 | 수동 재시도 + actor 기록 + 한도 가드 | [`ManualRetryTest`](src/test/kotlin/notification/practice/notification/ManualRetryTest.kt) |
 | 읽음 처리 멱등성 (다중 디바이스) | [`ReadNotificationTest`](src/test/kotlin/notification/practice/notification/ReadNotificationTest.kt) |
 | 템플릿 렌더링 + `rendered_body` 영속 | [`template/NotificationTemplateRenderingTest`](src/test/kotlin/notification/practice/notification/template/NotificationTemplateRenderingTest.kt) |
@@ -401,7 +393,7 @@ interface NotificationSender {                // 채널별 발송
 
 | 파일 | 역할 |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | 프로젝트 규약, 기술 스택, 코드 컨벤션, 우선 참조 문서 |
+| [`CLAUDE.md`](CLAUDE.md) | 프로젝트 규약, 코드 컨벤션, 우선 참조 문서 |
 | [`.claude/docs/assignment.md`](.claude/docs/assignment.md) | 과제 원문 — 요구사항을 변형하지 않게 함 |
 | [`.claude/docs/design-guideline.md`](.claude/docs/design-guideline.md) | 설계 결정 사전 정리 — 구현 방향이 흔들리지 않게 |
 | [`.claude/docs/roadmap.md`](.claude/docs/roadmap.md) | 단계별 PR 계획 — 다음 작업 단위 제시 |
@@ -464,36 +456,11 @@ git config core.hooksPath .githooks
 
 ---
 
-## 추가 문서
-
-요구사항이 명시한 별도 문서 두 개:
-
-- **비동기 처리 구조 + 재시도 정책** → [docs/async-and-retry.md](docs/async-and-retry.md)
-  outbox 흐름도, 다른 방식과의 비교, `FOR UPDATE SKIP LOCKED` 채택 근거, 자동/수동 재시도, 좀비 복구, 운영 전환 경로
-
-- **요구사항 해석 + 개선 의견** → [docs/interpretation.md](docs/interpretation.md)
-  *"메시지 브로커 없이"* 의 보수적 해석, 다중 인스턴스 모델 결정, 좀비 임계값, 멱등성 키 생성 주체, 의도적으로 빼놓은 항목 + 운영 시 추가할 항목
-
----
-
-## 미구현 / 제약
-
-| 항목 | 사유 |
-|---|---|
-| 실제 SMTP 연동 | 요구사항: *"Mock 또는 로그 출력으로 대체"* — `EmailSender`, `InAppSender` 모두 로그 출력 |
-| Spring Security / JWT | 요구사항: *"간략 처리 가능 (`userId` 를 헤더로 전달)"* — `X-User-Id`, `X-Actor-Id` 헤더로 단순화 |
-| Kafka / Redis 등 외부 인프라 | 요구사항을 보수적으로 해석 — [interpretation.md §1-1](docs/interpretation.md#1-1-메시지-브로커-없이-의-범위) |
-| FCM / APNs (실제 푸시) | 채널이 EMAIL / IN_APP 으로 한정됨 |
-| DLQ 운영 대시보드 UI | API 만 제공 — 운영 시 추가 검토 ([interpretation.md §2-1](docs/interpretation.md#2-1-dead_letter-운영-대시보드)) |
-| Throttling, 우선순위, 채널별 sender pool | 운영 단계 개선 항목으로 분리 |
-
----
-
 ## AI 활용 범위
 
 | 도구 | 용도 |
 |---|---|
-| Claude Code (Opus 4.7) | 코드 / 테스트 / 문서 작성, 셀프 리뷰, 채점 |
+| Claude Code | 코드 / 테스트 / 문서 작성, 셀프 리뷰, 채점 |
 | 커스텀 서브에이전트 (`grader`) | 평가 룰북 기반 채점 (자체 검증) |
 | `compound-engineering` 리뷰어 3종 | PR 전 셀프 리뷰 (correctness / adversarial / testing) |
 
@@ -505,7 +472,7 @@ git config core.hooksPath .githooks
 - DEAD_LETTER 카운터 분리 정책 (자동/수동 독립)
 - PR 단위 분리 + 로드맵 작성 (PR 1~9)
 - "메시지 브로커 없이" 의 해석 (보수적)
-- 좀비 임계값 결정 (5 분)
+- 처리 타임아웃 임계값 결정 (5 분)
 - README / 문서의 톤과 구성
 
 **Claude 에 위임한 일**:

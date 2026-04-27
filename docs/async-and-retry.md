@@ -32,7 +32,7 @@
 | 워커 폴링 | [`worker/NotificationWorker.kt`](../src/main/kotlin/notification/practice/notification/worker/NotificationWorker.kt) |
 | row 클레임 | [`worker/NotificationWorkerClaimer.kt`](../src/main/kotlin/notification/practice/notification/worker/NotificationWorkerClaimer.kt) |
 | 발송 + 결과 반영 | [`worker/NotificationWorkerProcessor.kt`](../src/main/kotlin/notification/practice/notification/worker/NotificationWorkerProcessor.kt) |
-| 좀비 복구 | [`worker/ProcessingTimeoutRecoveryJob.kt`](../src/main/kotlin/notification/practice/notification/worker/ProcessingTimeoutRecoveryJob.kt) |
+| 처리 타임아웃 복구 | [`worker/ProcessingTimeoutRecoveryJob.kt`](../src/main/kotlin/notification/practice/notification/worker/ProcessingTimeoutRecoveryJob.kt) |
 
 ---
 
@@ -125,7 +125,7 @@ Header: X-Actor-Id: admin-001
 
 ---
 
-## 5. 좀비 복구
+## 5. 처리 타임아웃 복구
 
 워커가 `PROCESSING` 으로 마킹한 직후 JVM 이 크래시하면 row 가 영구히 `PROCESSING` 에 갇힌다.
 [`ProcessingTimeoutRecoveryJob`](../src/main/kotlin/notification/practice/notification/worker/ProcessingTimeoutRecoveryJob.kt) 이 1 분마다 돌면서 `updated_at` 이 임계 시간보다 오래된 `PROCESSING` row 를 `PENDING` 으로 되돌린다.
@@ -134,7 +134,7 @@ Header: X-Actor-Id: admin-001
 PROCESSING with updated_at < (NOW() - 5분) → PENDING
 ```
 
-복구된 row 는 다음 워커 폴링 사이클에서 다시 픽업된다. `autoAttemptCount` 는 건드리지 않는다 — 좀비 복구는 "처리 시도 자체를 무효화" 하는 것이지 "실패 1회로 카운팅" 하는 것이 아니기 때문이다.
+복구된 row 는 다음 워커 폴링 사이클에서 다시 픽업된다. `autoAttemptCount` 는 건드리지 않는다 — 타임아웃 복구는 "처리 시도 자체를 무효화" 하는 것이지 "실패 1회로 카운팅" 하는 것이 아니기 때문이다.
 
 ---
 
@@ -145,7 +145,7 @@ PROCESSING with updated_at < (NOW() - 5분) → PENDING
 | 상태 | 재시작 후 | 처리 주체 |
 |---|---|---|
 | `PENDING` | 워커가 다음 사이클에 픽업 | `NotificationWorkerClaimer.findPendingDispatchable` |
-| `PROCESSING` (좀비) | 5분 후 `PENDING` 으로 복원 | `ProcessingTimeoutRecoveryJob` |
+| `PROCESSING` (타임아웃) | 5분 후 `PENDING` 으로 복원 | `ProcessingTimeoutRecoveryJob` |
 | `FAILED` (자동 재시도 대기) | `next_retry_at <= NOW()` 가 되면 픽업 | `NotificationWorkerClaimer.findRetriableDispatchable` |
 | `DEAD_LETTER` | 운영자 수동 재시도까지 대기 | `AdminNotificationController.retry` |
 
