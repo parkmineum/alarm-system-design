@@ -3,9 +3,9 @@ package notification.practice.notification
 import notification.practice.notification.dto.NotificationResponse
 import notification.practice.notification.dto.RegisterNotificationRequest
 import org.springframework.dao.DataIntegrityViolationException
-import java.time.Instant
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 class NotificationService(
