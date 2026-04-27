@@ -1,9 +1,9 @@
 package notification.practice.notification.template
 
 import notification.practice.notification.NotificationChannel
+import notification.practice.notification.NotificationService
 import notification.practice.notification.NotificationStatus
 import notification.practice.notification.dto.RegisterNotificationRequest
-import notification.practice.notification.NotificationService
 import notification.practice.notification.sender.NotificationSenderRegistry
 import notification.practice.notification.worker.NotificationWorker
 import org.junit.jupiter.api.Test

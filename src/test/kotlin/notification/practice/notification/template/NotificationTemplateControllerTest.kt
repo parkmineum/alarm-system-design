@@ -1,8 +1,8 @@
 package notification.practice.notification.template
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import notification.practice.notification.NotificationChannel
 import notification.practice.common.error.GlobalExceptionHandler
+import notification.practice.notification.NotificationChannel
 import notification.practice.notification.template.dto.NotificationTemplateRequest
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
