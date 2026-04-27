@@ -15,6 +15,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.Instant
@@ -31,7 +32,7 @@ class NotificationControllerTest
         private lateinit var notificationService: NotificationService
 
         @Test
-        fun `POST notifications - 정상 등록은 201 과 응답 바디를 돌려준다`() {
+        fun `POST notifications - 정상 등록은 201 과 Location 헤더 및 응답 바디를 돌려준다`() {
             val response = sampleResponse()
             whenever(notificationService.register(any())).thenReturn(response)
 
@@ -52,12 +53,18 @@ class NotificationControllerTest
                         .content(objectMapper.writeValueAsString(body)),
                 )
                 .andExpect(status().isCreated)
+                .andExpect(header().string("Location", "/notifications/${response.id}"))
                 .andExpect(jsonPath("$.id").value(response.id))
+                .andExpect(jsonPath("$.recipientId").value(response.recipientId))
+                .andExpect(jsonPath("$.type").value(response.type))
+                .andExpect(jsonPath("$.channel").value(response.channel.name))
+                .andExpect(jsonPath("$.refType").value(response.refType))
+                .andExpect(jsonPath("$.refId").value(response.refId))
                 .andExpect(jsonPath("$.status").value(response.status.name))
         }
 
         @Test
-        fun `POST notifications - 필수 필드 누락 시 400 과 VALIDATION_FAILED 코드를 돌려준다`() {
+        fun `POST notifications - 필수 필드 누락 시 400 과 VALIDATION_FAILED 코드 및 details 를 돌려준다`() {
             val body =
                 mapOf(
                     "recipientId" to null,
@@ -74,16 +81,52 @@ class NotificationControllerTest
                 )
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details").isMap)
+                .andExpect(jsonPath("$.details.recipientId").exists())
+        }
+
+        @Test
+        fun `POST notifications - 지원하지 않는 channel 값은 400 과 MALFORMED_REQUEST 를 돌려준다`() {
+            val body = """{"recipientId":1,"type":"T","channel":"SMS","refType":"R","refId":"1"}"""
+
+            mockMvc
+                .perform(
+                    post("/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"))
+        }
+
+        @Test
+        fun `GET notifications id - 정상 조회는 200 과 응답 바디를 돌려준다`() {
+            val response = sampleResponse()
+            whenever(notificationService.get(1L, 1L)).thenReturn(response)
+
+            mockMvc
+                .perform(get("/notifications/1").header("X-User-Id", "1"))
+                .andExpect(status().isOk)
+                .andExpect(jsonPath("$.id").value(response.id))
+                .andExpect(jsonPath("$.status").value(response.status.name))
         }
 
         @Test
         fun `GET notifications id - 미존재 id 는 404 와 NOTIFICATION_NOT_FOUND 코드를 돌려준다`() {
-            whenever(notificationService.get(999L)).thenThrow(NotificationNotFoundException(999L))
+            whenever(notificationService.get(999L, 1L)).thenThrow(NotificationNotFoundException(999L))
 
             mockMvc
-                .perform(get("/notifications/999"))
+                .perform(get("/notifications/999").header("X-User-Id", "1"))
                 .andExpect(status().isNotFound)
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
+        }
+
+        @Test
+        fun `GET notifications id - X-User-Id 헤더가 없으면 400 과 MISSING_HEADER 를 돌려준다`() {
+            mockMvc
+                .perform(get("/notifications/1"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("MISSING_HEADER"))
         }
 
         @Test
@@ -92,6 +135,14 @@ class NotificationControllerTest
                 .perform(get("/me/notifications"))
                 .andExpect(status().isBadRequest)
                 .andExpect(jsonPath("$.code").value("MISSING_HEADER"))
+        }
+
+        @Test
+        fun `GET me notifications - X-User-Id 헤더가 숫자가 아니면 400 과 INVALID_PARAMETER 를 돌려준다`() {
+            mockMvc
+                .perform(get("/me/notifications").header("X-User-Id", "abc"))
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("INVALID_PARAMETER"))
         }
 
         @Test

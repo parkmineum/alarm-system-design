@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.transaction.support.TransactionTemplate
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
 @SpringBootTest
 class NotificationRegistrationTest
@@ -25,34 +27,39 @@ class NotificationRegistrationTest
 
             assertEquals(first.id, second.id)
             assertEquals(first.id, third.id)
-            assertEquals(1, tx.execute { notifications.findAll().size })
+            assertEquals(1, tx.execute { notifications.findByRecipientIdOrderByCreatedAtDesc(42L).size })
         }
 
         @Test
-        fun `동기 발송이 성공하면 status 는 SENT 로 전이된다`() {
-            val response = service.register(sampleRequest())
+        fun `동기 발송이 성공하면 status 는 SENT 이고 processedAt 이 채워지고 lastError 는 없다`() {
+            val response = service.register(sampleRequest(recipientId = 10L))
 
             assertEquals(NotificationStatus.SENT, response.status)
             val stored = tx.execute { notifications.findById(response.id).orElseThrow() }!!
             assertEquals(NotificationStatus.SENT, stored.status)
+            assertNotNull(stored.processedAt)
+            assertNull(stored.lastError)
         }
 
         @Test
-        fun `채널이 다르면 멱등성 키가 달라져 별개의 row 로 저장된다`() {
-            val email = service.register(sampleRequest(channel = NotificationChannel.EMAIL))
-            val inApp = service.register(sampleRequest(channel = NotificationChannel.IN_APP))
+        fun `채널이 다르면 멱등성 키가 달라져 별개의 row 로 저장되고 모두 SENT 로 전이된다`() {
+            val email = service.register(sampleRequest(channel = NotificationChannel.EMAIL, recipientId = 20L))
+            val inApp = service.register(sampleRequest(channel = NotificationChannel.IN_APP, recipientId = 20L))
 
-            assertEquals(2, tx.execute { notifications.findAll().size })
+            assertEquals(NotificationStatus.SENT, email.status)
+            assertEquals(NotificationStatus.SENT, inApp.status)
             assert(email.id != inApp.id)
         }
 
-        private fun sampleRequest(channel: NotificationChannel = NotificationChannel.EMAIL) =
-            RegisterNotificationRequest(
-                recipientId = 42L,
-                type = "COURSE_ENROLLMENT_COMPLETED",
-                channel = channel,
-                refType = "COURSE",
-                refId = "c-100",
-                payload = """{"courseName":"Kotlin in Action"}""",
-            )
+        private fun sampleRequest(
+            channel: NotificationChannel = NotificationChannel.EMAIL,
+            recipientId: Long = 42L,
+        ) = RegisterNotificationRequest(
+            recipientId = recipientId,
+            type = "COURSE_ENROLLMENT_COMPLETED",
+            channel = channel,
+            refType = "COURSE",
+            refId = "c-100",
+            payload = """{"courseName":"Kotlin in Action"}""",
+        )
     }
