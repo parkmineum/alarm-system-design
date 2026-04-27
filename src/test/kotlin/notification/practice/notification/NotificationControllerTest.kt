@@ -196,6 +196,21 @@ class NotificationControllerTest
                 .andExpect(jsonPath("$.code").value("NOTIFICATION_NOT_FOUND"))
         }
 
+        @Test
+        fun `POST notifications - scheduledAt 이 과거 시각이면 400 을 돌려준다`() {
+            val body = """{"recipientId":1,"type":"T","channel":"EMAIL","refType":"R","refId":"1","scheduledAt":"2000-01-01T00:00:00Z"}"""
+
+            mockMvc
+                .perform(
+                    post("/api/v1/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body),
+                )
+                .andExpect(status().isBadRequest)
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.details.scheduledAt").exists())
+        }
+
         private fun sampleResponse(): NotificationResponse =
             NotificationResponse(
                 id = 1L,
@@ -204,6 +219,7 @@ class NotificationControllerTest
                 channel = NotificationChannel.EMAIL,
                 refType = "COURSE",
                 refId = "c-100",
+                scheduledAt = Instant.now(),
                 status = NotificationStatus.SENT,
                 autoAttemptCount = 0,
                 nextRetryAt = null,

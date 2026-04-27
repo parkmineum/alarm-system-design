@@ -6,6 +6,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 @Service
 class NotificationService(
@@ -44,6 +45,9 @@ class NotificationService(
                         refId = refId,
                         payload = request.payload,
                         idempotencyKey = key,
+                        scheduledAt =
+                            request.scheduledAt?.truncatedTo(ChronoUnit.MILLIS)
+                                ?: Instant.now().truncatedTo(ChronoUnit.MILLIS),
                     ),
                 )
             } catch (e: DataIntegrityViolationException) {
