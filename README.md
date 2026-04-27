@@ -1,7 +1,7 @@
-# 알림 발송 시스템 (BE-C)
+# 알림 발송 시스템
 
 수강 신청 / 결제 확정 / 강의 시작 D-1 / 취소 등 도메인 이벤트가 발생할 때 EMAIL · IN_APP 알림을 비동기로 발송한다.
-브로커 없이 DB 기반 outbox + 폴링 워커로 구현했고, 운영 환경에서 Kafka 등으로 점진 전환 가능한 형태로 추상화했다.
+브로커 없이 DB 기반 outbox + 폴링 워커로 구현했고, 운영 환경에서 메시지 큐 (Kafka, RabbitMQ 등) 로 점진 전환 가능한 형태로 추상화했다.
 
 테스트 93건 모두 통과 — `./gradlew test`
 
@@ -14,27 +14,16 @@
 
 ## Quick Start — Docker
 
-`docker compose up -d` 한 줄로 MySQL 과 앱이 같이 뜬다.
-
 ```bash
-docker compose up -d        # 백그라운드 기동
-docker compose logs -f app  # 앱 로그 따라가기
-docker compose down         # 종료
-docker compose down -v      # 데이터까지 초기화
+docker compose up -d
 ```
 
-| 서비스 | 호스트 포트 | 용도 |
+| 서비스 | 포트 | 비고 |
 |---|---|---|
-| `app` | `28080` | Spring Boot 애플리케이션 |
-| `mysql` | `23306` | MySQL 8.0 (`notification` DB) |
+| `app` | `28080` | Swagger UI → http://localhost:28080/swagger-ui/index.html |
+| `mysql` | `23306` | `notification` DB |
 
-작동 흐름:
-
-1. `Dockerfile` 멀티스테이지 — `gradle bootJar` 로 빌드 → `eclipse-temurin:17-jre` 위에 실행
-2. `mysql` 컨테이너의 `healthcheck` 가 `mysqladmin ping` 통과해야 `app` 컨테이너 기동
-3. 앱은 `DB_URL=jdbc:mysql://mysql:3306/notification` 로 컨테이너 네트워크 내부에서 DB 접근
-4. JPA `ddl-auto=update` — 첫 기동 시 스키마 자동 생성, 이후 변경분만 반영
-5. 앱이 뜨면 [http://localhost:28080/swagger-ui/index.html](http://localhost:28080/swagger-ui/index.html) 에서 Swagger UI 확인 가능
+멀티스테이지 빌드 → `mysql` healthcheck 통과 후 앱 기동 → JPA `ddl-auto=update` 로 스키마 자동 생성.
 
 ---
 
