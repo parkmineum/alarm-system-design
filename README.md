@@ -5,23 +5,6 @@
 - [비동기 처리 구조 + 재시도 정책](docs/async-and-retry.md)
 - [요구사항 해석 + 개선 의견](docs/interpretation.md)
 - [Claude 활용 흐름](.claude/docs/claude-workflow.md)
-- 📡 API 명세 — 아래 펼침
-- 🗄️ DB 스키마 / ERD — 아래 펼침
-
----
-
-## 실행
-
-```bash
-docker compose up -d
-```
-
-| 서비스 | 포트 | |
-|---|---|---|
-| `app` | `28080` | http://localhost:28080/swagger-ui/index.html |
-| `mysql` | `23306` | `notification` DB |
-
----
 
 <details>
 <summary><b>📡 API 명세 — 펼쳐서 보기</b></summary>
