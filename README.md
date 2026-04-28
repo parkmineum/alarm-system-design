@@ -196,7 +196,7 @@ docker compose up -d
 | `app` | `28080` | http://localhost:28080/swagger-ui/index.html |
 | `mysql` | `23306` | `notification` DB |
 
-### E2E
+## E2E 테스트 관련
 
 - 슬라이스 / 통합 테스트는 H2 위에서 동작하므로, `SELECT FOR UPDATE SKIP LOCKED` 같은 MySQL 8 전용 락 동작과 비동기 워커 전이가 운영 환경과 동치인지를 코드로 보장하지 못합니다.
 - [`NotificationE2eTest`](src/test/kotlin/notification/practice/e2e/NotificationE2eTest.kt) 는 Testcontainers 로 MySQL 8 을 띄우고, 임의 포트로 부팅한 앱에 RestAssured 로 HTTP 호출하여 멱등성·권한·읽음 멱등·DLQ retry 가드·검증 실패 등 9 시나리오를 운영 DB 위에서 가드합니다. 비동기 전이는 Awaitility 로 폴링합니다.
